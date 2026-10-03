@@ -1,6 +1,16 @@
 # Slop-Backend
 
-Backend for CAD Hub: the Supabase schema (`supabase/migrations/`) and a Cloudflare Worker (`src/`) that grants Supabase access to Firebase users.
+Backend for CAD Hub: the Supabase schema (`supabase/migrations/`), a Cloudflare Worker (`src/`) that grants Supabase access to Firebase users, and the CAD design-intent IR package (`packages/ir/`).
+
+## Packages
+
+This repo is an npm workspace. `npm install` at the root installs everything.
+
+| Package | Purpose |
+|---|---|
+| `packages/ir` (`@slop/ir`) | Zod schema, TypeScript types, generated JSON Schema, canonical hashing and integrity checks for the vendor-neutral CAD IR. See [packages/ir/README.md](packages/ir/README.md). |
+
+`npm test` and `npm run typecheck` at the root run every workspace.
 
 ## How auth works
 

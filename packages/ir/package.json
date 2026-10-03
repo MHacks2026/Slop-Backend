@@ -1,0 +1,28 @@
+{
+  "name": "@slop/ir",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Design-intent intermediate representation for history-based CAD: Zod schema, TypeScript types, JSON Schema, canonical hashing",
+  "exports": {
+    ".": "./src/index.ts",
+    "./fixtures/plate": "./src/fixtures/plate.ts",
+    "./schema.json": "./schema/ir.schema.json"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "gen:schema": "tsx scripts/generate-json-schema.ts",
+    "gen:csharp": "quicktype --src-lang schema --lang csharp --namespace Slop.Ir --out ../../extractor/Ir.generated.cs schema/ir.schema.json"
+  },
+  "dependencies": {
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.3"
+  }
+}
