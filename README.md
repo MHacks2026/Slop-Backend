@@ -23,7 +23,7 @@ Requires Node 22 (`nvm use`).
    - `SUPABASE_URL`, `SUPABASE_SECRET_KEY`: Supabase → Project Settings → API Keys.
    - `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`: Firebase console → Project settings → Service accounts → *Generate new private key*. Take `project_id`, `client_email` and `private_key` from the JSON. Keep the `\n` escapes and quote the key.
 2. **Enable the Firebase integration in Supabase.** Supabase dashboard → Authentication → Sign In / Providers → Third-party auth → *Add provider* → Firebase, with project ID `mhacks-2026`.
-3. **Enable sign-in methods in Firebase.** Firebase console → Authentication → Sign-in method → turn on *Google* and *Email/Password*.
+3. **Enable sign-in methods in Firebase.** Firebase console → Authentication → Sign-in method → turn on *Email/Password*.
 4. **Apply migrations** in order: `0001_cad_hub_schema.sql`, then `0002_firebase_auth.sql`. Either run `npx supabase db push` after `npx supabase link`, or paste each file into the Supabase SQL editor.
 5. **Run the Worker:** `npm install && npm run dev` (serves on `http://localhost:8787`).
 
