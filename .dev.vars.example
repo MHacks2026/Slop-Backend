@@ -1,0 +1,12 @@
+# Copy to .dev.vars for local dev (gitignored).
+# For production, set each one with: npx wrangler secret put <NAME>
+
+# Supabase (Project Settings -> API Keys)
+SUPABASE_URL=
+SUPABASE_SECRET_KEY=
+
+# Firebase Admin (Project Settings -> Service accounts -> Generate new private key)
+FIREBASE_PROJECT_ID=
+FIREBASE_CLIENT_EMAIL=
+# Keep the \n escapes and wrap in quotes
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
