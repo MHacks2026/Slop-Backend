@@ -1,0 +1,8 @@
+# Supabase CLI config. Only non-default settings are listed; the CLI fills in
+# the rest.
+project_id = "slop-backend"
+
+[functions.bundle-export]
+# Called by the database through pg_net and authenticated with the
+# x-webhook-secret header, not a user JWT.
+verify_jwt = false

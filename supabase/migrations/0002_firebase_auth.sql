@@ -450,7 +450,9 @@ begin
   create temp table _export_sel on commit drop as
   select cp.part_id, cp.blob_id, cp.path
   from commit_parts cp
+  join file_blobs fb on fb.id = cp.blob_id
   where cp.commit_id = p_commit_id
+    and fb.source_format in ('step', 'stp')  -- skip README.md and other non-CAD files
     and (
       coalesce(cardinality(p_paths), 0) = 0
       or exists (

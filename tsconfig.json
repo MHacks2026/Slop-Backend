@@ -15,4 +15,6 @@
         "node"
     ]
   },
+  // supabase/functions is Deno (own deno.json); scripts/ has its own tsconfig.
+  "exclude": ["node_modules", "supabase/functions", "scripts"],
 }
