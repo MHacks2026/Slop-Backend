@@ -1,0 +1,433 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://slop.dev/schemas/ir/0.1.0/ir.schema.json",
+  "title": "CAD design-intent IR (MVP subset)",
+  "description": "All numeric values are SI (metres, radians). Source expression strings are kept alongside values. Features are in rollback order and may only reference earlier features.",
+  "type": "object",
+  "required": ["irVersion", "source", "parameters", "partStudio"],
+  "additionalProperties": false,
+  "properties": {
+    "irVersion": { "const": "0.1.0" },
+    "source": { "$ref": "#/$defs/Source" },
+    "customProperties": { "type": "object", "additionalProperties": { "type": "string" } },
+    "parameters": { "type": "array", "items": { "$ref": "#/$defs/Parameter" } },
+    "partStudio": { "$ref": "#/$defs/PartStudio" },
+    "configurations": { "type": "array", "maxItems": 0, "description": "Reserved." },
+    "assemblies": { "type": "array", "maxItems": 0, "description": "Reserved." }
+  },
+  "$defs": {
+    "Id": { "type": "string", "minLength": 1, "pattern": "^[A-Za-z0-9_@.:-]+$" },
+    "Vec2": { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 },
+    "Vec3": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+    "Mat4": { "type": "array", "items": { "type": "number" }, "minItems": 16, "maxItems": 16 },
+    "Unit": { "enum": ["m", "rad", "kg", ""] },
+
+    "Quantity": {
+      "type": "object",
+      "required": ["expr", "value", "unit"],
+      "additionalProperties": false,
+      "properties": {
+        "expr": { "type": "string" },
+        "value": { "type": "number" },
+        "unit": { "$ref": "#/$defs/Unit" },
+        "parameter": { "$ref": "#/$defs/Id" }
+      }
+    },
+
+    "Fidelity": {
+      "type": "object",
+      "required": ["rung"],
+      "additionalProperties": false,
+      "properties": {
+        "rung": { "enum": ["pending", "exact", "composite", "featurescript", "approximated", "geometry", "dropped"] },
+        "notes": { "type": "string" },
+        "deviation": { "type": "number", "minimum": 0 }
+      }
+    },
+
+    "DatumRef": {
+      "type": "object",
+      "required": ["kind", "name"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "const": "datum" },
+        "name": { "enum": ["FRONT", "TOP", "RIGHT", "ORIGIN"] }
+      }
+    },
+    "FeatureOutputRef": {
+      "type": "object",
+      "required": ["kind", "feature", "role"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "const": "feature-output" },
+        "feature": { "$ref": "#/$defs/Id" },
+        "role": { "enum": ["region", "body", "plane", "axis", "point"] },
+        "index": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "FaceSignature": {
+      "type": "object",
+      "required": ["surface"],
+      "additionalProperties": false,
+      "properties": {
+        "surface": { "enum": ["plane", "cylinder", "cone", "torus", "sphere", "bspline"] },
+        "normal": { "$ref": "#/$defs/Vec3" },
+        "offset": { "type": "number" },
+        "axis": { "$ref": "#/$defs/Vec3" },
+        "axisPoint": { "$ref": "#/$defs/Vec3" },
+        "radius": { "type": "number" },
+        "centroid": { "$ref": "#/$defs/Vec3" },
+        "area": { "type": "number" }
+      }
+    },
+    "EdgeSignature": {
+      "type": "object",
+      "required": ["curve"],
+      "additionalProperties": false,
+      "properties": {
+        "curve": { "enum": ["line", "circle", "ellipse", "bspline"] },
+        "radius": { "type": "number" },
+        "center": { "$ref": "#/$defs/Vec3" },
+        "midpoint": { "$ref": "#/$defs/Vec3" },
+        "length": { "type": "number" },
+        "direction": { "$ref": "#/$defs/Vec3" }
+      }
+    },
+    "VertexSignature": {
+      "type": "object",
+      "required": ["point"],
+      "additionalProperties": false,
+      "properties": { "point": { "$ref": "#/$defs/Vec3" } }
+    },
+    "TopoRef": {
+      "type": "object",
+      "required": ["kind", "entity"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "const": "topo" },
+        "entity": { "enum": ["face", "edge", "vertex"] },
+        "createdBy": { "$ref": "#/$defs/Id" },
+        "role": { "type": "string" },
+        "srcPersistId": { "type": "string" },
+        "signature": {
+          "oneOf": [
+            { "$ref": "#/$defs/FaceSignature" },
+            { "$ref": "#/$defs/EdgeSignature" },
+            { "$ref": "#/$defs/VertexSignature" }
+          ]
+        },
+        "adjacency": { "type": "string" },
+        "probe": { "$ref": "#/$defs/Vec3" }
+      },
+      "allOf": [
+        { "if": { "properties": { "entity": { "const": "face" }, "signature": true }, "required": ["entity", "signature"] }, "then": { "properties": { "signature": { "$ref": "#/$defs/FaceSignature" } } } },
+        { "if": { "properties": { "entity": { "const": "edge" }, "signature": true }, "required": ["entity", "signature"] }, "then": { "properties": { "signature": { "$ref": "#/$defs/EdgeSignature" } } } },
+        { "if": { "properties": { "entity": { "const": "vertex" }, "signature": true }, "required": ["entity", "signature"] }, "then": { "properties": { "signature": { "$ref": "#/$defs/VertexSignature" } } } }
+      ]
+    },
+    "Ref": {
+      "oneOf": [
+        { "$ref": "#/$defs/DatumRef" },
+        { "$ref": "#/$defs/FeatureOutputRef" },
+        { "$ref": "#/$defs/TopoRef" }
+      ]
+    },
+    "SketchEntityRef": {
+      "type": "object",
+      "required": ["kind", "sketch", "entity"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "const": "sketch-entity" },
+        "sketch": { "$ref": "#/$defs/Id" },
+        "entity": { "$ref": "#/$defs/Id" }
+      }
+    },
+
+    "Parameter": {
+      "type": "object",
+      "required": ["id", "name", "scope", "expression", "value", "unit", "driven"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/Id" },
+        "name": { "type": "string" },
+        "scope": { "enum": ["global", "part"] },
+        "expression": { "type": "string" },
+        "value": { "type": "number" },
+        "unit": { "$ref": "#/$defs/Unit" },
+        "driven": { "type": "boolean" }
+      }
+    },
+
+    "SketchEntityBase": {
+      "type": "object",
+      "required": ["id", "type", "construction"],
+      "properties": {
+        "id": { "$ref": "#/$defs/Id" },
+        "construction": { "type": "boolean" },
+        "srcId": { "type": "string" }
+      }
+    },
+    "SketchEntity": {
+      "allOf": [{ "$ref": "#/$defs/SketchEntityBase" }],
+      "oneOf": [
+        { "type": "object", "required": ["type", "p"], "properties": { "type": { "const": "point" }, "p": { "$ref": "#/$defs/Vec2" } } },
+        { "type": "object", "required": ["type", "p0", "p1"], "properties": { "type": { "const": "line" }, "p0": { "$ref": "#/$defs/Vec2" }, "p1": { "$ref": "#/$defs/Vec2" } } },
+        { "type": "object", "required": ["type", "center", "p0", "p1", "ccw"], "properties": { "type": { "const": "arc" }, "center": { "$ref": "#/$defs/Vec2" }, "p0": { "$ref": "#/$defs/Vec2" }, "p1": { "$ref": "#/$defs/Vec2" }, "ccw": { "type": "boolean" } } },
+        { "type": "object", "required": ["type", "center", "r"], "properties": { "type": { "const": "circle" }, "center": { "$ref": "#/$defs/Vec2" }, "r": { "type": "number", "exclusiveMinimum": 0 } } },
+        { "type": "object", "required": ["type", "center", "majorAxis", "minorRadius"], "properties": { "type": { "const": "ellipse" }, "center": { "$ref": "#/$defs/Vec2" }, "majorAxis": { "$ref": "#/$defs/Vec2" }, "minorRadius": { "type": "number", "exclusiveMinimum": 0 } } },
+        { "type": "object", "required": ["type", "degree", "controlPoints", "knots"], "properties": { "type": { "const": "spline" }, "degree": { "type": "integer", "minimum": 1 }, "controlPoints": { "type": "array", "items": { "$ref": "#/$defs/Vec2" } }, "knots": { "type": "array", "items": { "type": "number" } }, "weights": { "type": "array", "items": { "type": "number" } } } }
+      ]
+    },
+
+    "SketchArg": {
+      "oneOf": [
+        { "type": "string", "pattern": "^(ORIGIN|[A-Za-z0-9_-]+(\\.(start|end|center))?)$" },
+        { "$ref": "#/$defs/Ref" }
+      ]
+    },
+    "Constraint": {
+      "type": "object",
+      "required": ["type", "args"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "enum": ["coincident", "horizontal", "vertical", "parallel", "perpendicular", "tangent", "concentric", "equal", "midpoint", "symmetric", "fix", "collinear", "pierce", "onEntity"] },
+        "args": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/SketchArg" } }
+      }
+    },
+    "Dimension": {
+      "type": "object",
+      "required": ["id", "type", "args", "value", "driving"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/Id" },
+        "type": { "enum": ["distance", "horizontal", "vertical", "angle", "radius", "diameter"] },
+        "args": { "type": "array", "minItems": 1, "maxItems": 2, "items": { "$ref": "#/$defs/SketchArg" } },
+        "value": { "$ref": "#/$defs/Quantity" },
+        "driving": { "type": "boolean" }
+      }
+    },
+
+    "EndCondition": {
+      "oneOf": [
+        { "type": "object", "required": ["type", "depth"], "additionalProperties": false, "properties": { "type": { "const": "blind" }, "depth": { "$ref": "#/$defs/Quantity" } } },
+        { "type": "object", "required": ["type"], "additionalProperties": false, "properties": { "type": { "const": "throughAll" } } },
+        { "type": "object", "required": ["type"], "additionalProperties": false, "properties": { "type": { "const": "upToNext" } } },
+        { "type": "object", "required": ["type", "vertex"], "additionalProperties": false, "properties": { "type": { "const": "upToVertex" }, "vertex": { "$ref": "#/$defs/Ref" } } },
+        { "type": "object", "required": ["type", "face"], "additionalProperties": false, "properties": { "type": { "const": "upToSurface" }, "face": { "$ref": "#/$defs/Ref" } } },
+        { "type": "object", "required": ["type", "face", "offset"], "additionalProperties": false, "properties": { "type": { "const": "offsetFromSurface" }, "face": { "$ref": "#/$defs/Ref" }, "offset": { "$ref": "#/$defs/Quantity" }, "reverseOffset": { "type": "boolean" } } },
+        { "type": "object", "required": ["type", "depth"], "additionalProperties": false, "properties": { "type": { "const": "midPlane" }, "depth": { "$ref": "#/$defs/Quantity" } } }
+      ]
+    },
+    "BooleanMode": { "enum": ["new", "add", "remove", "intersect"] },
+
+    "Evidence": {
+      "type": "object",
+      "required": ["bodyCount", "volume", "area"],
+      "additionalProperties": false,
+      "properties": {
+        "bodyCount": { "type": "integer", "minimum": 0 },
+        "volume": { "type": "number", "minimum": 0 },
+        "area": { "type": "number", "minimum": 0 },
+        "centerOfMass": { "$ref": "#/$defs/Vec3" },
+        "bbox": { "type": "object", "required": ["min", "max"], "additionalProperties": false, "properties": { "min": { "$ref": "#/$defs/Vec3" }, "max": { "$ref": "#/$defs/Vec3" } } },
+        "faceCount": { "type": "integer", "minimum": 0 },
+        "edgeCount": { "type": "integer", "minimum": 0 },
+        "vertexCount": { "type": "integer", "minimum": 0 },
+        "faceTypes": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 0 } },
+        "brepHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "views": { "type": "array", "items": { "type": "string", "pattern": "^[0-9a-f]{64}$" } }
+      }
+    },
+
+    "FeatureBase": {
+      "type": "object",
+      "required": ["id", "src", "op", "suppressed", "fidelity"],
+      "properties": {
+        "id": { "$ref": "#/$defs/Id" },
+        "src": { "type": "object", "required": ["name"], "additionalProperties": false, "properties": { "name": { "type": "string" }, "type": { "type": "string" } } },
+        "suppressed": { "type": "boolean" },
+        "fidelity": { "$ref": "#/$defs/Fidelity" },
+        "ext": { "type": "object" },
+        "evidence": { "$ref": "#/$defs/Evidence" }
+      }
+    },
+
+    "PatternDirection": {
+      "type": "object",
+      "required": ["direction", "count", "spacing", "flip"],
+      "additionalProperties": false,
+      "properties": {
+        "direction": { "oneOf": [{ "$ref": "#/$defs/Ref" }, { "$ref": "#/$defs/SketchEntityRef" }] },
+        "count": { "$ref": "#/$defs/Quantity" },
+        "spacing": { "$ref": "#/$defs/Quantity" },
+        "flip": { "type": "boolean" }
+      }
+    },
+
+    "Feature": {
+      "allOf": [{ "$ref": "#/$defs/FeatureBase" }],
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["op", "plane", "transform", "entities", "constraints", "dimensions"],
+          "properties": {
+            "op": { "const": "sketch" },
+            "plane": { "$ref": "#/$defs/Ref" },
+            "transform": { "$ref": "#/$defs/Mat4" },
+            "entities": { "type": "array", "items": { "$ref": "#/$defs/SketchEntity" } },
+            "constraints": { "type": "array", "items": { "$ref": "#/$defs/Constraint" } },
+            "dimensions": { "type": "array", "items": { "$ref": "#/$defs/Dimension" } }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["op", "mode", "profile", "flip", "end"],
+          "properties": {
+            "op": { "const": "extrude" },
+            "mode": { "$ref": "#/$defs/BooleanMode" },
+            "profile": { "$ref": "#/$defs/Ref" },
+            "flip": { "type": "boolean" },
+            "end": { "$ref": "#/$defs/EndCondition" },
+            "end2": { "$ref": "#/$defs/EndCondition" },
+            "draft": { "type": "object", "required": ["angle", "outward"], "additionalProperties": false, "properties": { "angle": { "$ref": "#/$defs/Quantity" }, "outward": { "type": "boolean" } } }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["op", "mode", "profile", "axis", "angle", "flip"],
+          "properties": {
+            "op": { "const": "revolve" },
+            "mode": { "$ref": "#/$defs/BooleanMode" },
+            "profile": { "$ref": "#/$defs/Ref" },
+            "axis": { "oneOf": [{ "$ref": "#/$defs/Ref" }, { "$ref": "#/$defs/SketchEntityRef" }] },
+            "angle": { "$ref": "#/$defs/Quantity" },
+            "flip": { "type": "boolean" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["op", "radius", "edges", "tangentPropagation"],
+          "properties": {
+            "op": { "const": "fillet" },
+            "radius": { "$ref": "#/$defs/Quantity" },
+            "edges": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/Ref" } },
+            "tangentPropagation": { "type": "boolean" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["op", "spec", "edges", "tangentPropagation"],
+          "properties": {
+            "op": { "const": "chamfer" },
+            "spec": {
+              "oneOf": [
+                { "type": "object", "required": ["type", "distance"], "additionalProperties": false, "properties": { "type": { "const": "equalDistance" }, "distance": { "$ref": "#/$defs/Quantity" } } },
+                { "type": "object", "required": ["type", "distance1", "distance2", "flip"], "additionalProperties": false, "properties": { "type": { "const": "twoDistances" }, "distance1": { "$ref": "#/$defs/Quantity" }, "distance2": { "$ref": "#/$defs/Quantity" }, "flip": { "type": "boolean" } } },
+                { "type": "object", "required": ["type", "distance", "angle", "flip"], "additionalProperties": false, "properties": { "type": { "const": "distanceAngle" }, "distance": { "$ref": "#/$defs/Quantity" }, "angle": { "$ref": "#/$defs/Quantity" }, "flip": { "type": "boolean" } } }
+              ]
+            },
+            "edges": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/Ref" } },
+            "tangentPropagation": { "type": "boolean" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["op", "style", "positions", "startFace", "diameter", "end"],
+          "properties": {
+            "op": { "const": "hole" },
+            "style": { "enum": ["simple", "counterbore", "countersink"] },
+            "positions": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/Ref" } },
+            "startFace": { "$ref": "#/$defs/Ref" },
+            "diameter": { "$ref": "#/$defs/Quantity" },
+            "end": { "$ref": "#/$defs/EndCondition" },
+            "counterbore": { "type": "object", "required": ["diameter", "depth"], "additionalProperties": false, "properties": { "diameter": { "$ref": "#/$defs/Quantity" }, "depth": { "$ref": "#/$defs/Quantity" } } },
+            "countersink": { "type": "object", "required": ["diameter", "angle"], "additionalProperties": false, "properties": { "diameter": { "$ref": "#/$defs/Quantity" }, "angle": { "$ref": "#/$defs/Quantity" } } },
+            "standard": { "type": "object", "required": ["name"], "additionalProperties": false, "properties": { "name": { "type": "string" }, "type": { "type": "string" }, "size": { "type": "string" } } }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["op", "thickness", "removeFaces", "outward"],
+          "properties": {
+            "op": { "const": "shell" },
+            "thickness": { "$ref": "#/$defs/Quantity" },
+            "removeFaces": { "type": "array", "items": { "$ref": "#/$defs/Ref" } },
+            "outward": { "type": "boolean" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["op", "seeds", "direction1"],
+          "properties": {
+            "op": { "const": "linearPattern" },
+            "seeds": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/Id" } },
+            "direction1": { "$ref": "#/$defs/PatternDirection" },
+            "direction2": { "$ref": "#/$defs/PatternDirection" },
+            "skipped": { "type": "array", "items": { "type": "array", "items": { "type": "integer", "minimum": 0 }, "minItems": 2, "maxItems": 2 } }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["op", "seeds", "axis", "count", "angle", "equalSpacing", "flip"],
+          "properties": {
+            "op": { "const": "circularPattern" },
+            "seeds": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/Id" } },
+            "axis": { "$ref": "#/$defs/Ref" },
+            "count": { "$ref": "#/$defs/Quantity" },
+            "angle": { "$ref": "#/$defs/Quantity" },
+            "equalSpacing": { "type": "boolean" },
+            "flip": { "type": "boolean" },
+            "skipped": { "type": "array", "items": { "type": "integer", "minimum": 0 } }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["op", "seeds", "plane"],
+          "properties": {
+            "op": { "const": "mirror" },
+            "seeds": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/Id" } },
+            "plane": { "$ref": "#/$defs/Ref" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["op", "definition"],
+          "properties": {
+            "op": { "const": "plane" },
+            "definition": {
+              "oneOf": [
+                { "type": "object", "required": ["type", "base", "distance", "flip"], "additionalProperties": false, "properties": { "type": { "const": "offset" }, "base": { "$ref": "#/$defs/Ref" }, "distance": { "$ref": "#/$defs/Quantity" }, "flip": { "type": "boolean" } } },
+                { "type": "object", "required": ["type", "a", "b"], "additionalProperties": false, "properties": { "type": { "const": "midPlane" }, "a": { "$ref": "#/$defs/Ref" }, "b": { "$ref": "#/$defs/Ref" } } },
+                { "type": "object", "required": ["type", "base", "axis", "angle", "flip"], "additionalProperties": false, "properties": { "type": { "const": "angle" }, "base": { "$ref": "#/$defs/Ref" }, "axis": { "$ref": "#/$defs/Ref" }, "angle": { "$ref": "#/$defs/Quantity" }, "flip": { "type": "boolean" } } }
+              ]
+            }
+          }
+        }
+      ]
+    },
+
+    "PartStudio": {
+      "type": "object",
+      "required": ["id", "name", "features"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/Id" },
+        "name": { "type": "string" },
+        "features": { "type": "array", "items": { "$ref": "#/$defs/Feature" } }
+      }
+    },
+
+    "Source": {
+      "type": "object",
+      "required": ["cad"],
+      "additionalProperties": false,
+      "properties": {
+        "cad": { "enum": ["solidworks", "onshape", "fusion", "inventor", "freecad", "other"] },
+        "version": { "type": "string" },
+        "fileName": { "type": "string" },
+        "fileHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "extractedAt": { "type": "string", "format": "date-time" }
+      }
+    }
+  }
+}
