@@ -27,6 +27,10 @@ async function getAccessToken(env: FirebaseEnv): Promise<string> {
     return cachedAccessToken.token;
   }
 
+  if (!env.FIREBASE_CLIENT_EMAIL || !env.FIREBASE_PRIVATE_KEY) {
+    throw new Error("FIREBASE_CLIENT_EMAIL / FIREBASE_PRIVATE_KEY are not set (see .dev.vars.example)");
+  }
+
   // .dev.vars and wrangler secrets keep the PEM's newlines escaped
   const key = await importPKCS8(env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n"), "RS256");
   const assertion = await new SignJWT({ scope: "https://www.googleapis.com/auth/identitytoolkit" })
