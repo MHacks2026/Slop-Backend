@@ -1,0 +1,25 @@
+{
+  "name": "@slop/onshape",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Onshape executor and LLM translator loop: typed build plans, FeatureScript topology, ranked resolver, per-feature measurement.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test \"test/**/*.test.ts\"",
+    "cli": "node --import tsx src/cli.ts"
+  },
+  "dependencies": {
+    "@slop/ir": "*",
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "tsx": "^4.19.4",
+    "typescript": "^7.0.2"
+  }
+}
