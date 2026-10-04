@@ -131,7 +131,7 @@ test("a reference that breaks under the change is a regeneration failure, and th
   assert.match(renderMarkdown(report), /REGENERATION FAILED D1@Sketch1[\s\S]*features in error after the change: Fillet1/);
 });
 
-test("planner proposals without source evidence run as unverified; unknown targets are unsupported", async () => {
+test("planner proposals without source evidence run as unverified, capped; unknown targets are dropped", async () => {
   class Proposes extends RulePlanner {
     override async proposeBehaviorTests() {
       return [
@@ -144,19 +144,78 @@ test("planner proposals without source evidence run as unverified; unknown targe
   const api = new FakeOnshape(plateWorld(plate));
   const report = await buildDocument(plate, api, { planner: new Proposes() });
 
-  assert.equal(report.behavior.length, 7, "5 verified + the 60 mm proposal + the unknown target; the 55 mm duplicate is folded into the verified case");
+  assert.equal(report.behavior.length, 6, "5 verified + the 60 mm proposal; the 55 mm duplicate folds into the verified case and the unknown target is dropped before it costs a call");
   const sixty = report.behavior.find((b) => b.expression === "60 mm")!;
   assert.equal(sixty.target, "D1@Sketch1");
   assert.equal(sixty.verified, false);
   assert.equal(sixty.status, "unverified");
   assert.equal(sixty.restored, true);
-  const unknown = report.behavior.find((b) => b.target === "D7@Nowhere")!;
-  assert.equal(unknown.status, "unsupported");
-  assert.match(unknown.error!, /no Onshape sketch dimension found/);
-  assert.equal(report.summary.behaviorUnverified, 2);
+  assert.equal(report.behavior.find((b) => b.target === "D7@Nowhere"), undefined);
+  assert.equal(report.summary.behaviorUnverified, 1);
   assert.equal(api.activeChange(), undefined);
+
+  // Unverified proposals are capped: they only prove regeneration and each costs API calls.
+  class ProposesMany extends RulePlanner {
+    override async proposeBehaviorTests() {
+      return ["60 mm", "61 mm", "62 mm", "63 mm", "64 mm"].map((expression) => ({ target: "D1@Sketch1", expression, expectation: "x" }));
+    }
+  }
+  const capped = await buildDocument(plate, new FakeOnshape(plateWorld(plate)), { planner: new ProposesMany(), maxUnverifiedBehavior: 2 });
+  assert.equal(capped.behavior.filter((b) => !b.verified).length, 2);
   assert.match(renderMarkdown(report), /UNVERIFIED D1@Sketch1 → `60 mm` \(no source evidence for this change\)/);
 });
+
+test("an approximated feature keeps its measured deviation, and behaviour is then judged on changes, not absolutes", async () => {
+  // The fake adds a constant 1e-8 m3 (about 0.07%) to every solid state after the base block,
+  // like a flat-bottomed cut standing in for a drill point. The planner declares both later
+  // features approximated.
+  const api = new FakeOnshape(plateWorld(plate), {
+    massProperties: (name, ev) => (ev ? { hasMass: false, volume: [ev.volume + (name === "Boss-Extrude1" ? 0 : 1e-8)], periphery: [ev.area], centroid: [0, 0, 0] } : undefined),
+  });
+  const report = await buildDocument(plate, api, { planner: new Approximates(["f4"]) });
+
+  assert.equal(report.stoppedEarly, false);
+  const f4 = report.features.find((f) => f.irId === "f4")!;
+  assert.equal(f4.status, "built");
+  assert.equal(f4.rung, "approximated");
+  assert.ok(f4.deviation! > 6e-4 && f4.deviation! < 8e-4, `deviation ${f4.deviation}`);
+  assert.ok(f4.checks.find((c) => c.name === "volume")!.advisory, "the volume miss is recorded as advisory, not hidden");
+  assert.equal(report.summary.checksFailed, 0);
+
+  // The fillet after it is exact: it inherits the offset, so it is judged on the change it makes (verified live on LCDM2).
+  const f5 = report.features.find((f) => f.irId === "f5")!;
+  assert.equal(f5.status, "built");
+  assert.equal(f5.rung, "exact");
+  assert.ok(f5.checks.find((c) => c.name === "volume")!.pass);
+  assert.match(f5.notes.join("\n"), /checked as a change relative to the preceding approximated feature/);
+
+  // Absolute comparison would fail every case on volume; comparing changes passes them all.
+  assert.deepEqual(report.behavior.map((b) => b.status), ["passed", "passed", "passed", "passed", "passed"]);
+  assert.ok(report.behavior.every((b) => b.restored));
+  assert.match(renderMarkdown(report), /\| 4 \| Cut-Extrude1 \| extrude \| approximated \(deviation 6\.\d+e-4\) \|/);
+});
+
+test("an approximation that misses by more than the cap still fails the feature", async () => {
+  const api = new FakeOnshape(plateWorld(plate), {
+    massProperties: (name, ev) => (ev ? { hasMass: false, volume: [ev.volume * (name === "Boss-Extrude1" ? 1 : 1.05)], periphery: [ev.area], centroid: [0, 0, 0] } : undefined),
+  });
+  const report = await buildDocument(plate, api, { planner: new Approximates(["f4"]) });
+  const f4 = report.features.find((f) => f.irId === "f4")!;
+  assert.equal(f4.status, "failed");
+  assert.match(f4.error!, /Level 1 divergence: volume/);
+});
+
+/** Rules planner that claims rung "approximated" for the given IR features. */
+class Approximates extends RulePlanner {
+  constructor(private readonly ids: string[]) {
+    super();
+  }
+  override async proposeStep(req: Parameters<RulePlanner["proposeStep"]>[0]) {
+    const p = await super.proposeStep(req);
+    if (!this.ids.includes(req.feature.id)) return p;
+    return { ...p, ops: p.ops.map((o) => ({ ...o, rung: "approximated" as const })) };
+  }
+}
 
 test("behaviour tests can be switched off, leaving the proposals in the report", async () => {
   const api = new FakeOnshape(plateWorld(plate));

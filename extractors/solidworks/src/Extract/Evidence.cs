@@ -102,7 +102,12 @@ namespace Slop.SolidWorks.Extract
             }
         }
 
-        /// <summary>Surface type names as the Onshape side reports them (lower-cased FeatureScript SurfaceType).</summary>
+        /// <summary>
+        /// Surface type names as the Onshape side reports them: fs/topology.ts
+        /// lower-cases FeatureScript's SurfaceType (PLANE, CYLINDER, CONE, SPHERE,
+        /// TORUS, SPUN, SWEPT, OTHER), so the advisory face-type comparison in
+        /// validate.ts only lines up when SOLIDWORKS kinds use the same words.
+        /// </summary>
         private static string SurfaceType(int identity)
         {
             switch ((swSurfaceTypes_e)identity)
@@ -112,10 +117,9 @@ namespace Slop.SolidWorks.Extract
                 case swSurfaceTypes_e.CONE_TYPE: return "cone";
                 case swSurfaceTypes_e.SPHERE_TYPE: return "sphere";
                 case swSurfaceTypes_e.TORUS_TYPE: return "torus";
-                case swSurfaceTypes_e.BSURF_TYPE: return "spline";
-                case swSurfaceTypes_e.EXTRU_TYPE: return "extruded";
-                case swSurfaceTypes_e.SREV_TYPE: return "revolved";
-                default: return "other";
+                case swSurfaceTypes_e.EXTRU_TYPE: return "swept";
+                case swSurfaceTypes_e.SREV_TYPE: return "spun";
+                default: return "other"; // B-surfaces and anything else: Onshape reports these as OTHER
             }
         }
 

@@ -261,17 +261,18 @@ export function proposeCircularPattern(f: CircularPatternFeature, _ctx: StepCont
  * Hole Wizard as a composite (rung 2): a sketch on the start face holding one
  * circle per position, dimensioned to the hole diameter, plus a cut extrude
  * with the hole's end condition; a counterbore adds a second sketch and a
- * blind cut. Onshape's native hole feature has a large, undocumented
- * parameter set tied to its hole tables; the composite keeps every dimension
- * parametric and is built from mechanisms already verified live.
+ * blind cut; a countersink adds a chamfer on the rim. Onshape's native hole
+ * feature has a large, undocumented parameter set tied to its hole tables;
+ * the composite keeps every dimension parametric and is built from
+ * mechanisms already verified live.
  *
  * Each circle centre is placed at the position's recorded point and tied to
  * it with a coincident constraint, so the hole follows the vertex it was
  * placed on. Positions without recorded geometry cannot be placed.
  */
 export function proposeHole(f: HoleFeature, _ctx: StepContext, parameters: Params): Op[] {
-  if (f.style === "countersink") throw new ProposalError("countersink holes have no direct proposer yet");
   if (f.positions.length === 0) throw new ProposalError("hole has no positions");
+  if (f.style === "countersink" && !f.countersink) throw new ProposalError("countersunk hole without countersink diameter and angle");
   const face = planeOf(f.startFace);
   if (!face) throw new ProposalError("hole start face has no plane signature (normal + offset or centroid), so the helper sketch cannot be oriented");
   const frame = frameOn(face.normal, face.point);
@@ -288,10 +289,12 @@ export function proposeHole(f: HoleFeature, _ctx: StepContext, parameters: Param
 
   const ops: Op[] = [];
   const holeSketch = `${f.id}.sketch`;
-  ops.push(
-    circlesSketch(holeSketch, `${f.src.name} positions`, f, frame.transform, centres, f.diameter, parameters, `${f.positions.length} hole centre(s) tied to their positions, dimensioned Ø${f.diameter.expr}`),
-    cut(f.id, f.src.name, holeSketch, f.end, f, parameters, `Cut the Ø${f.diameter.expr} hole(s) ${describeEnd(f.end)}`),
-  );
+  // A drill point has no extrude equivalent: the cut is flat-bottomed and says so (rung 4,
+  // approximated). The builder measures the deviation instead of failing the feature.
+  const tip = f.drillTip && f.end.type === "blind" ? f.drillTip.angle : undefined;
+  const cutOp = cut(f.id, f.src.name, holeSketch, f.end, f, parameters, `Cut the Ø${f.diameter.expr} hole(s) ${describeEnd(f.end)}${tip ? `; flat bottom in place of the ${tip.expr} drill point (not expressible as an extrude)` : ""}`);
+  if (tip) cutOp.rung = "approximated";
+  ops.push(circlesSketch(holeSketch, `${f.src.name} positions`, f, frame.transform, centres, f.diameter, parameters, `${f.positions.length} hole centre(s) tied to their positions, dimensioned Ø${f.diameter.expr}`), cutOp);
   if (f.style === "counterbore" && f.counterbore) {
     const cboreSketch = `${f.id}.cbore.sketch`;
     ops.push(
@@ -299,7 +302,59 @@ export function proposeHole(f: HoleFeature, _ctx: StepContext, parameters: Param
       cut(`${f.id}.cbore`, `${f.src.name} counterbore`, cboreSketch, { type: "blind", depth: f.counterbore.depth }, f, parameters, `Counterbore ${f.counterbore.depth.expr} deep`),
     );
   }
+  if (f.style === "countersink" && f.countersink) {
+    ops.push(countersinkChamfer(f, centres, parameters));
+  }
   return ops;
+}
+
+/**
+ * A countersink is the cone a chamfer makes on the hole's rim: radial width
+ * (D - d) / 2 along the start face, and (D - d) / 2 / tan(θ / 2) down the
+ * wall for an included angle θ. At 90° the two are equal and the chamfer is
+ * unambiguous; otherwise TWO_OFFSETS is used and which width Onshape applies
+ * to which face is UNVERIFIED, so the measurement loop decides.
+ * The rim is selected as the circular edge the cut created at each centre,
+ * which keeps the countersink attached to the hole if it moves.
+ */
+function countersinkChamfer(f: HoleFeature, centres: Array<{ ref: Ref; index: number; local: [number, number] }>, parameters: Params): CreateFeatureOp {
+  const csk = f.countersink!;
+  const radial = (csk.diameter.value - f.diameter.value) / 2;
+  if (!(radial > 0)) throw new ProposalError(`countersink Ø${csk.diameter.expr} is not larger than the hole Ø${f.diameter.expr}`);
+  const half = csk.angle.value / 2;
+  if (!(half > 0 && half < Math.PI / 2)) throw new ProposalError(`countersink angle ${csk.angle.expr} is not between 0 and 180 degrees`);
+  const axial = radial / Math.tan(half);
+  const mm = (m: number) => `${Number((m * 1000).toPrecision(10))} mm`;
+  const points = f.positions.map(pointOf);
+  const rims: Selection[] = centres.map((c, k) => ({
+    kind: "createdBy",
+    feature: f.id,
+    entity: "edge",
+    where: { type: "circle", radius: f.diameter.value / 2, ...(points[k] ? { near: points[k] } : {}) },
+  }));
+  const equal = Math.abs(radial - axial) < 1e-9;
+  const params: ParameterValue[] = [{ id: "entities", selections: rims }];
+  if (equal) {
+    params.push({ id: "chamferType", enum: { name: "ChamferType", value: "EQUAL_OFFSETS" } }, { id: "width", quantity: mm(radial) });
+  } else {
+    params.push(
+      { id: "chamferType", enum: { name: "ChamferType", value: "TWO_OFFSETS" } },
+      { id: "width1", quantity: mm(radial) },
+      { id: "width2", quantity: mm(axial) },
+      { id: "oppositeDirection", boolean: false },
+    );
+  }
+  params.push({ id: "tangentPropagation", boolean: false });
+  void parameters;
+  return {
+    op: "createFeature",
+    id: `${f.id}.csk`,
+    name: `${f.src.name} countersink`,
+    intent: `Countersink Ø${csk.diameter.expr} x ${csk.angle.expr} as a chamfer on the rim of each hole (${mm(radial)} radial${equal ? "" : `, ${mm(axial)} axial`})`,
+    rung: "composite",
+    featureType: "chamfer",
+    parameters: params,
+  };
 }
 
 function circlesSketch(

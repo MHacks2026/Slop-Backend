@@ -1,0 +1,1180 @@
+{
+  "planVersion": "0.1.0",
+  "irIntentHash": "509d0ecc4900cd108b082c7c8e92454602c9c98c87cd2e7d4273338969692345",
+  "provenance": {
+    "planner": "claude",
+    "model": "claude-opus-5-5",
+    "promptVersion": "0.1.1"
+  },
+  "steps": [
+    {
+      "irFeature": "f1",
+      "ops": [
+        {
+          "op": "createSketch",
+          "id": "f1",
+          "name": "Sketch2",
+          "intent": "Reproduce Sketch2: closed stepped profile centered on origin, on the TOP plane",
+          "rung": "exact",
+          "plane": {
+            "kind": "datum",
+            "name": "TOP"
+          },
+          "irSketch": "f1",
+          "transform": [
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            -1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1
+          ],
+          "entities": [
+            {
+              "id": "l1",
+              "type": "line",
+              "construction": false,
+              "srcId": "Line5",
+              "p0": [
+                -0.02870835,
+                0
+              ],
+              "p1": [
+                0.02870835,
+                0
+              ]
+            },
+            {
+              "id": "l2",
+              "type": "line",
+              "construction": false,
+              "srcId": "Line6",
+              "p0": [
+                -0.02870835,
+                0
+              ],
+              "p1": [
+                -0.02870835,
+                0.0079375
+              ]
+            },
+            {
+              "id": "l3",
+              "type": "line",
+              "construction": false,
+              "srcId": "Line10",
+              "p0": [
+                -0.02870835,
+                0.0079375
+              ],
+              "p1": [
+                -0.00648335,
+                0.0079375
+              ]
+            },
+            {
+              "id": "l4",
+              "type": "line",
+              "construction": false,
+              "srcId": "Line11",
+              "p0": [
+                -0.00648335,
+                0.0079375
+              ],
+              "p1": [
+                -0.00648335,
+                0.0127
+              ]
+            },
+            {
+              "id": "l5",
+              "type": "line",
+              "construction": false,
+              "srcId": "Line12",
+              "p0": [
+                -0.00648335,
+                0.0127
+              ],
+              "p1": [
+                0.00474345,
+                0.0127
+              ]
+            },
+            {
+              "id": "l6",
+              "type": "line",
+              "construction": false,
+              "srcId": "Line13",
+              "p0": [
+                0.02870835,
+                0
+              ],
+              "p1": [
+                0.02870835,
+                0.0039243
+              ]
+            },
+            {
+              "id": "l7",
+              "type": "line",
+              "construction": false,
+              "srcId": "Line14",
+              "p0": [
+                0.02870835,
+                0.0039243
+              ],
+              "p1": [
+                0.00474345,
+                0.0039243
+              ]
+            },
+            {
+              "id": "l8",
+              "type": "line",
+              "construction": false,
+              "srcId": "Line15",
+              "p0": [
+                0.00474345,
+                0.0039243
+              ],
+              "p1": [
+                0.00474345,
+                0.0127
+              ]
+            },
+            {
+              "id": "p1",
+              "type": "point",
+              "construction": false,
+              "p": [
+                0,
+                0
+              ]
+            }
+          ],
+          "constraints": [
+            {
+              "type": "coincident",
+              "args": [
+                "l1.start",
+                "l2.start"
+              ]
+            },
+            {
+              "type": "coincident",
+              "args": [
+                "l1.end",
+                "l6.start"
+              ]
+            },
+            {
+              "type": "coincident",
+              "args": [
+                "l2.end",
+                "l3.start"
+              ]
+            },
+            {
+              "type": "coincident",
+              "args": [
+                "l3.end",
+                "l4.start"
+              ]
+            },
+            {
+              "type": "coincident",
+              "args": [
+                "l4.end",
+                "l5.start"
+              ]
+            },
+            {
+              "type": "coincident",
+              "args": [
+                "l5.end",
+                "l8.end"
+              ]
+            },
+            {
+              "type": "coincident",
+              "args": [
+                "l6.end",
+                "l7.start"
+              ]
+            },
+            {
+              "type": "coincident",
+              "args": [
+                "l7.end",
+                "l8.start"
+              ]
+            },
+            {
+              "type": "midpoint",
+              "args": [
+                "p1",
+                "l1"
+              ]
+            },
+            {
+              "type": "coincident",
+              "args": [
+                "ORIGIN",
+                "p1"
+              ]
+            },
+            {
+              "type": "horizontal",
+              "args": [
+                "l1"
+              ]
+            },
+            {
+              "type": "vertical",
+              "args": [
+                "l2"
+              ]
+            },
+            {
+              "type": "horizontal",
+              "args": [
+                "l3"
+              ]
+            },
+            {
+              "type": "vertical",
+              "args": [
+                "l4"
+              ]
+            },
+            {
+              "type": "horizontal",
+              "args": [
+                "l5"
+              ]
+            },
+            {
+              "type": "vertical",
+              "args": [
+                "l6"
+              ]
+            },
+            {
+              "type": "horizontal",
+              "args": [
+                "l7"
+              ]
+            },
+            {
+              "type": "vertical",
+              "args": [
+                "l8"
+              ]
+            }
+          ],
+          "dimensions": [
+            {
+              "id": "D1@Sketch2",
+              "type": "distance",
+              "args": [
+                "l1.start",
+                "l1.end"
+              ],
+              "value": {
+                "expr": "2.2605 in",
+                "value": 0.0574167,
+                "unit": "m"
+              },
+              "driving": true
+            },
+            {
+              "id": "D2@Sketch2",
+              "type": "distance",
+              "args": [
+                "l1.start",
+                "l2.end"
+              ],
+              "value": {
+                "expr": "0.3125 in",
+                "value": 0.0079375,
+                "unit": "m"
+              },
+              "driving": true
+            },
+            {
+              "id": "D3@Sketch2",
+              "type": "distance",
+              "args": [
+                "l2.end",
+                "l3.end"
+              ],
+              "value": {
+                "expr": "0.875 in",
+                "value": 0.022225,
+                "unit": "m"
+              },
+              "driving": true
+            },
+            {
+              "id": "D4@Sketch2",
+              "type": "distance",
+              "args": [
+                "l3.end",
+                "l4.end"
+              ],
+              "value": {
+                "expr": "0.1875 in",
+                "value": 0.0047625,
+                "unit": "m"
+              },
+              "driving": true
+            },
+            {
+              "id": "D5@Sketch2",
+              "type": "distance",
+              "args": [
+                "l4.end",
+                "l5.end"
+              ],
+              "value": {
+                "expr": "0.442 in",
+                "value": 0.0112268,
+                "unit": "m"
+              },
+              "driving": true
+            },
+            {
+              "id": "D6@Sketch2",
+              "type": "distance",
+              "args": [
+                "l1.end",
+                "l6.end"
+              ],
+              "value": {
+                "expr": "0.1545 in",
+                "value": 0.0039243,
+                "unit": "m"
+              },
+              "driving": true
+            }
+          ]
+        }
+      ],
+      "reasoning": "This copies the source sketch one-to-one on the TOP datum. It keeps all 8 profile lines, the midpoint point fixed to the origin, all 18 relations, and the 6 driving dimensions with their original inch values. The sketch was fully constrained in SolidWorks and nothing needs to be added, so the rung is exact.",
+      "attempts": 1
+    },
+    {
+      "irFeature": "f2",
+      "ops": [
+        {
+          "op": "createFeature",
+          "id": "f2",
+          "name": "Revolve1",
+          "intent": "Revolve the region of f1 a full turn about l1 of f1",
+          "rung": "exact",
+          "featureType": "revolve",
+          "parameters": [
+            {
+              "id": "bodyType",
+              "enum": {
+                "name": "ExtendedToolBodyType",
+                "value": "SOLID"
+              }
+            },
+            {
+              "id": "operationType",
+              "enum": {
+                "name": "NewBodyOperationType",
+                "value": "NEW"
+              }
+            },
+            {
+              "id": "entities",
+              "selections": [
+                {
+                  "kind": "sketchRegion",
+                  "sketch": "f1"
+                }
+              ]
+            },
+            {
+              "id": "axis",
+              "selections": [
+                {
+                  "kind": "sketchEntity",
+                  "sketch": "f1",
+                  "entity": "l1"
+                }
+              ]
+            },
+            {
+              "id": "revolveType",
+              "enum": {
+                "name": "RevolveType",
+                "value": "FULL"
+              }
+            },
+            {
+              "id": "oppositeDirection",
+              "boolean": false
+            }
+          ]
+        }
+      ],
+      "reasoning": "The SolidWorks revolve is a one-direction 360° new-body revolve of the f1 sketch region about sketch line l1. This maps directly to an Onshape FULL revolve with NEW operation, using live sketch region and sketch-entity axis references.",
+      "attempts": 1
+    },
+    {
+      "irFeature": "f3",
+      "ops": [
+        {
+          "op": "createFeature",
+          "id": "f3",
+          "name": "Chamfer1",
+          "intent": "Chamfer 4 circular edges of the revolved body, 0.026 in at 45 deg",
+          "rung": "exact",
+          "featureType": "chamfer",
+          "parameters": [
+            {
+              "id": "entities",
+              "selections": [
+                {
+                  "kind": "irRef",
+                  "irFeature": "f3",
+                  "path": "edges[0]"
+                },
+                {
+                  "kind": "irRef",
+                  "irFeature": "f3",
+                  "path": "edges[1]"
+                },
+                {
+                  "kind": "irRef",
+                  "irFeature": "f3",
+                  "path": "edges[2]"
+                },
+                {
+                  "kind": "irRef",
+                  "irFeature": "f3",
+                  "path": "edges[3]"
+                }
+              ]
+            },
+            {
+              "id": "chamferType",
+              "enum": {
+                "name": "ChamferType",
+                "value": "OFFSET_ANGLE"
+              }
+            },
+            {
+              "id": "width",
+              "quantity": "0.026 in"
+            },
+            {
+              "id": "angle",
+              "quantity": "45 deg"
+            },
+            {
+              "id": "oppositeDirection",
+              "boolean": true
+            },
+            {
+              "id": "tangentPropagation",
+              "boolean": true
+            }
+          ]
+        }
+      ],
+      "reasoning": "Direct mapping of a SolidWorks distance-angle chamfer to an Onshape offset-angle chamfer on the same four circular edges (resolved live from the IR refs), with the IR distance, angle, flip and tangent propagation.",
+      "attempts": 1
+    },
+    {
+      "irFeature": "f4",
+      "ops": [
+        {
+          "op": "createSketch",
+          "id": "f4",
+          "name": "Sketch3",
+          "intent": "Reproduce Sketch3: a single point coincident with the sketch origin on the planar face of f2 at x=0.0287 (normal -X), likely a hole-centre placement sketch.",
+          "rung": "exact",
+          "plane": {
+            "kind": "irRef",
+            "irFeature": "f4",
+            "path": "plane"
+          },
+          "irSketch": "f4",
+          "entities": [
+            {
+              "id": "p1",
+              "type": "point",
+              "construction": false,
+              "p": [
+                0,
+                0
+              ]
+            }
+          ],
+          "constraints": [
+            {
+              "type": "coincident",
+              "args": [
+                "ORIGIN",
+                "p1"
+              ]
+            }
+          ],
+          "dimensions": []
+        }
+      ],
+      "reasoning": "Source sketch is one point fixed at the origin on the f2 end face. The plane is resolved from the IR face reference, so it stays a live link. All geometry and relations are copied straight from the IR.",
+      "attempts": 1
+    },
+    {
+      "irFeature": "f5",
+      "ops": [
+        {
+          "op": "createSketch",
+          "id": "f5.sketch",
+          "name": "#8-32 Tapped Hole1 positions",
+          "intent": "1 hole centre tied to the f4 position point, dimensioned to the Ø0.136 in tap drill",
+          "rung": "composite",
+          "plane": {
+            "kind": "irRef",
+            "irFeature": "f5",
+            "path": "startFace"
+          },
+          "transform": [
+            0,
+            0,
+            -1,
+            0.02870835,
+            1,
+            0,
+            0,
+            0,
+            0,
+            -1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1
+          ],
+          "entities": [
+            {
+              "id": "c0",
+              "type": "circle",
+              "construction": false,
+              "center": [
+                0,
+                0
+              ],
+              "r": 0.0017272
+            }
+          ],
+          "constraints": [
+            {
+              "type": "coincident",
+              "args": [
+                "c0.center",
+                {
+                  "kind": "topo",
+                  "entity": "vertex",
+                  "createdBy": "f4",
+                  "role": "sketch:p1",
+                  "signature": {
+                    "point": [
+                      0.02870835,
+                      0,
+                      0
+                    ]
+                  },
+                  "probe": [
+                    0.02870835,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ],
+          "dimensions": [
+            {
+              "id": "D1@_8-32_Tapped_Hole1_positions",
+              "type": "diameter",
+              "args": [
+                "c0"
+              ],
+              "value": {
+                "expr": "0.136 in",
+                "value": 0.0034544,
+                "unit": "m"
+              },
+              "driving": true
+            }
+          ]
+        },
+        {
+          "op": "createFeature",
+          "id": "f5",
+          "name": "#8-32 Tapped Hole1",
+          "intent": "Cut the Ø0.136 in tap drill 0.47 in deep; flat bottom in place of the 118 deg drill point",
+          "rung": "approximated",
+          "featureType": "extrude",
+          "parameters": [
+            {
+              "id": "bodyType",
+              "enum": {
+                "name": "ExtendedToolBodyType",
+                "value": "SOLID"
+              }
+            },
+            {
+              "id": "operationType",
+              "enum": {
+                "name": "NewBodyOperationType",
+                "value": "REMOVE"
+              }
+            },
+            {
+              "id": "entities",
+              "selections": [
+                {
+                  "kind": "sketchRegion",
+                  "sketch": "f5.sketch"
+                }
+              ]
+            },
+            {
+              "id": "endBound",
+              "enum": {
+                "name": "BoundingType",
+                "value": "BLIND"
+              }
+            },
+            {
+              "id": "depth",
+              "quantity": "0.47 in"
+            },
+            {
+              "id": "oppositeDirection",
+              "boolean": true
+            }
+          ]
+        },
+        {
+          "op": "createFeature",
+          "id": "f5.csk",
+          "name": "#8-32 Tapped Hole1 countersink",
+          "intent": "Countersink Ø0.214 in x 90 deg as an equal-offset chamfer on the hole rim ((0.214-0.136)/2 in = 0.9906 mm)",
+          "rung": "composite",
+          "featureType": "chamfer",
+          "parameters": [
+            {
+              "id": "entities",
+              "selections": [
+                {
+                  "kind": "createdBy",
+                  "feature": "f5",
+                  "entity": "edge",
+                  "where": {
+                    "type": "circle",
+                    "radius": 0.0017272,
+                    "near": [
+                      0.02870835,
+                      0,
+                      0
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "id": "chamferType",
+              "enum": {
+                "name": "ChamferType",
+                "value": "EQUAL_OFFSETS"
+              }
+            },
+            {
+              "id": "width",
+              "quantity": "0.9906 mm"
+            },
+            {
+              "id": "tangentPropagation",
+              "boolean": false
+            }
+          ]
+        }
+      ],
+      "reasoning": "The SolidWorks HoleWzd is a bottoming tapped hole with a countersink, built here from three steps. First, a sketch on the start face places a circle the size of the tap drill (Ø0.136 in), with its centre locked to the f4 point. Second, an extrude cuts that circle 0.47 in deep, in the opposite direction, into the material. Third, a 90° countersink to Ø0.214 in is the same as a 45° chamfer with equal offsets of (0.214−0.136)/2 in = 0.9906 mm on the hole's rim edge. The 118° drill point is left out (flat bottom), so this is tagged approximated. The threads are cosmetic in the source, so they are not modelled.",
+      "attempts": 1
+    },
+    {
+      "irFeature": "f6",
+      "ops": [
+        {
+          "op": "createSketch",
+          "id": "f6",
+          "name": "Sketch6",
+          "intent": "Reproduce Sketch6: a single point at the sketch origin on the x=-0.0287 m planar face of f2, likely a hole placement point.",
+          "rung": "exact",
+          "plane": {
+            "kind": "irRef",
+            "irFeature": "f6",
+            "path": "plane"
+          },
+          "irSketch": "f6",
+          "entities": [
+            {
+              "id": "p1",
+              "type": "point",
+              "construction": false,
+              "p": [
+                0,
+                0
+              ]
+            }
+          ],
+          "constraints": [
+            {
+              "type": "coincident",
+              "args": [
+                "ORIGIN",
+                "p1"
+              ]
+            }
+          ],
+          "dimensions": []
+        }
+      ],
+      "reasoning": "Sketch6 holds a single point fixed to the sketch origin. It sits on the f2 planar face with normal +X at offset -0.02870835. The direct plan matches the IR exactly. The plane is resolved live from the IR face reference.",
+      "attempts": 1
+    },
+    {
+      "irFeature": "f7",
+      "ops": [
+        {
+          "op": "createSketch",
+          "id": "f7.sketch",
+          "name": "5/16 (0.3135) Diameter Hole1 positions",
+          "intent": "1 hole centre(s) tied to their positions, dimensioned Ø0.3135 in",
+          "rung": "composite",
+          "plane": {
+            "kind": "irRef",
+            "irFeature": "f7",
+            "path": "startFace"
+          },
+          "transform": [
+            0,
+            0,
+            1,
+            -0.02870835,
+            1,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1
+          ],
+          "entities": [
+            {
+              "id": "c0",
+              "type": "circle",
+              "construction": false,
+              "center": [
+                0,
+                0
+              ],
+              "r": 0.00398145
+            }
+          ],
+          "constraints": [
+            {
+              "type": "coincident",
+              "args": [
+                "c0.center",
+                {
+                  "kind": "topo",
+                  "entity": "vertex",
+                  "createdBy": "f6",
+                  "role": "sketch:p1",
+                  "signature": {
+                    "point": [
+                      -0.02870835,
+                      0,
+                      0
+                    ]
+                  },
+                  "probe": [
+                    -0.02870835,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ],
+          "dimensions": [
+            {
+              "id": "D1@5_16__0.3135__Diameter_Hole1_positions",
+              "type": "diameter",
+              "args": [
+                "c0"
+              ],
+              "value": {
+                "expr": "0.3135 in",
+                "value": 0.0079629,
+                "unit": "m"
+              },
+              "driving": true
+            }
+          ]
+        },
+        {
+          "op": "createFeature",
+          "id": "f7",
+          "name": "5/16 (0.3135) Diameter Hole1",
+          "intent": "Cut the Ø0.3135 in hole 0.5 in deep (flat bottom, 180 deg drill angle)",
+          "rung": "composite",
+          "featureType": "extrude",
+          "parameters": [
+            {
+              "id": "bodyType",
+              "enum": {
+                "name": "ExtendedToolBodyType",
+                "value": "SOLID"
+              }
+            },
+            {
+              "id": "operationType",
+              "enum": {
+                "name": "NewBodyOperationType",
+                "value": "REMOVE"
+              }
+            },
+            {
+              "id": "entities",
+              "selections": [
+                {
+                  "kind": "sketchRegion",
+                  "sketch": "f7.sketch"
+                }
+              ]
+            },
+            {
+              "id": "endBound",
+              "enum": {
+                "name": "BoundingType",
+                "value": "BLIND"
+              }
+            },
+            {
+              "id": "depth",
+              "quantity": "0.5 in"
+            },
+            {
+              "id": "oppositeDirection",
+              "boolean": true
+            }
+          ]
+        },
+        {
+          "op": "createFeature",
+          "id": "f7.csk",
+          "name": "5/16 (0.3135) Diameter Hole1 countersink",
+          "intent": "Countersink Ø0.3635 in x 90 deg as an equal-offset chamfer on the hole rim (0.025 in = 0.635 mm radial)",
+          "rung": "composite",
+          "featureType": "chamfer",
+          "parameters": [
+            {
+              "id": "entities",
+              "selections": [
+                {
+                  "kind": "createdBy",
+                  "feature": "f7",
+                  "entity": "edge",
+                  "where": {
+                    "type": "circle",
+                    "radius": 0.00398145,
+                    "near": [
+                      -0.02870835,
+                      0,
+                      0
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "id": "chamferType",
+              "enum": {
+                "name": "ChamferType",
+                "value": "EQUAL_OFFSETS"
+              }
+            },
+            {
+              "id": "width",
+              "quantity": "0.635 mm"
+            },
+            {
+              "id": "tangentPropagation",
+              "boolean": false
+            }
+          ]
+        }
+      ],
+      "reasoning": "There's no native hole wizard here, so I rebuilt it as a composite of three steps. First, a sketch on the start face from f2, with the circle centre tied live to the f6 point and a Ø0.3135 in dimension. Second, a 0.5 in blind cut extrude; the drill angle is 180°, so the bottom is flat. Third, the 90° near-side countersink, done as an equal-offset chamfer of (0.3635−0.3135)/2 = 0.025 in = 0.635 mm on the rim edge. This matches how f5 was built.",
+      "attempts": 1
+    },
+    {
+      "irFeature": "f8",
+      "ops": [
+        {
+          "op": "createSketch",
+          "id": "f8",
+          "name": "Sketch9",
+          "intent": "Reproduce Sketch9: a single point at the sketch origin on the x-normal planar face created by f7, used as a hole placement point.",
+          "rung": "exact",
+          "plane": {
+            "kind": "irRef",
+            "irFeature": "f8",
+            "path": "plane"
+          },
+          "irSketch": "f8",
+          "entities": [
+            {
+              "id": "p1",
+              "type": "point",
+              "construction": false,
+              "p": [
+                0,
+                0
+              ]
+            }
+          ],
+          "constraints": [
+            {
+              "type": "coincident",
+              "args": [
+                "ORIGIN",
+                "p1"
+              ]
+            }
+          ],
+          "dimensions": []
+        }
+      ],
+      "reasoning": "Sketch9 has one point tied to the sketch origin. It sits on the planar face from f7 (normal +X, offset -0.016). The direct mapping keeps the plane as a live irRef and keeps the coincident constraint, so the sketch stays fully constrained, as it was in the source.",
+      "attempts": 1
+    },
+    {
+      "irFeature": "f9",
+      "ops": [
+        {
+          "op": "createSketch",
+          "id": "f9.sketch",
+          "name": "#9 (0.196) Diameter Hole1 positions",
+          "intent": "1 hole centre(s) tied to their positions, dimensioned Ø0.196 in",
+          "rung": "composite",
+          "plane": {
+            "kind": "irRef",
+            "irFeature": "f9",
+            "path": "startFace"
+          },
+          "transform": [
+            0,
+            0,
+            1,
+            -0.01600835,
+            1,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1
+          ],
+          "entities": [
+            {
+              "id": "c0",
+              "type": "circle",
+              "construction": false,
+              "center": [
+                0,
+                0
+              ],
+              "r": 0.0024892
+            }
+          ],
+          "constraints": [
+            {
+              "type": "coincident",
+              "args": [
+                "c0.center",
+                {
+                  "kind": "topo",
+                  "entity": "vertex",
+                  "createdBy": "f8",
+                  "role": "sketch:p1",
+                  "signature": {
+                    "point": [
+                      -0.01600835,
+                      0,
+                      0
+                    ]
+                  },
+                  "probe": [
+                    -0.01600835,
+                    0,
+                    0
+                  ]
+                }
+              ]
+            }
+          ],
+          "dimensions": [
+            {
+              "id": "D1@_9__0.196__Diameter_Hole1_positions",
+              "type": "diameter",
+              "args": [
+                "c0"
+              ],
+              "value": {
+                "expr": "0.196 in",
+                "value": 0.0049784,
+                "unit": "m"
+              },
+              "driving": true
+            }
+          ]
+        },
+        {
+          "op": "createFeature",
+          "id": "f9",
+          "name": "#9 (0.196) Diameter Hole1",
+          "intent": "Cut the Ø0.196 in hole 0.124 in deep; flat bottom in place of the 118 deg drill point (not expressible as an extrude)",
+          "rung": "approximated",
+          "featureType": "extrude",
+          "parameters": [
+            {
+              "id": "bodyType",
+              "enum": {
+                "name": "ExtendedToolBodyType",
+                "value": "SOLID"
+              }
+            },
+            {
+              "id": "operationType",
+              "enum": {
+                "name": "NewBodyOperationType",
+                "value": "REMOVE"
+              }
+            },
+            {
+              "id": "entities",
+              "selections": [
+                {
+                  "kind": "sketchRegion",
+                  "sketch": "f9.sketch"
+                }
+              ]
+            },
+            {
+              "id": "endBound",
+              "enum": {
+                "name": "BoundingType",
+                "value": "BLIND"
+              }
+            },
+            {
+              "id": "depth",
+              "quantity": "0.124 in"
+            },
+            {
+              "id": "oppositeDirection",
+              "boolean": true
+            }
+          ]
+        }
+      ],
+      "reasoning": "Simple blind drill hole: sketch the Ø0.196 in circle on the f7 start face, centred on the f8 sketch point, then cut it 0.124 in deep into the material. The 118° drill point is left off, so the hole has a flat bottom and is marked approximated.",
+      "attempts": 1
+    }
+  ],
+  "behaviorTests": [
+    {
+      "target": "D1@Sketch2",
+      "expression": "D1@Sketch2 = 2.5 in",
+      "expectation": "Rebuild succeeds; overall length along D1 direction grows by ~0.2395 in; single solid body; volume increases monotonically; other dimensions unchanged."
+    },
+    {
+      "target": "D1@Sketch2",
+      "expression": "D1@Sketch2 = 2.0 in",
+      "expectation": "Rebuild succeeds; overall length shrinks by ~0.2605 in; volume decreases; no self-intersection or sketch solve failure."
+    },
+    {
+      "target": "D2@Sketch2",
+      "expression": "D2@Sketch2 = 0.375 in",
+      "expectation": "Rebuild succeeds; feature governed by D2 changes by 0.0625 in; profile remains closed; single body; bounding box changes only along the D2 direction."
+    },
+    {
+      "target": "D3@Sketch2",
+      "expression": "D3@Sketch2 = 1.0 in",
+      "expectation": "Rebuild succeeds; extent governed by D3 grows by 0.125 in; volume increases; sketch remains fully constrained."
+    },
+    {
+      "target": "D3@Sketch2",
+      "expression": "D3@Sketch2 = 0.75 in",
+      "expectation": "Rebuild succeeds; extent governed by D3 shrinks by 0.125 in; volume decreases; topology (face count) unchanged."
+    },
+    {
+      "target": "D4@Sketch2",
+      "expression": "D4@Sketch2 = 0.25 in",
+      "expectation": "Rebuild succeeds; D4-driven feature changes by 0.0625 in; face count unchanged; single solid body."
+    },
+    {
+      "target": "D5@Sketch2",
+      "expression": "D5@Sketch2 = 0.5 in",
+      "expectation": "Rebuild succeeds; D5-driven extent changes by 0.058 in; profile remains a single closed region; face count unchanged."
+    },
+    {
+      "target": "D6@Sketch2",
+      "expression": "D6@Sketch2 = 0.2 in",
+      "expectation": "Rebuild succeeds; D6-driven extent changes by 0.0455 in; topology preserved; no zero-thickness or degenerate geometry."
+    },
+    {
+      "target": "D2@Sketch2,D4@Sketch2",
+      "expression": "D2@Sketch2 = 0.25 in; D4@Sketch2 = 0.125 in",
+      "expectation": "Rebuild succeeds with both reduced; single body; face count unchanged; volume changes consistent with smaller profile."
+    },
+    {
+      "target": "all",
+      "expression": "Restore all dimensions to original values",
+      "expectation": "Model returns to original volume, bounding box and face count within 1e-6 relative tolerance."
+    }
+  ]
+}

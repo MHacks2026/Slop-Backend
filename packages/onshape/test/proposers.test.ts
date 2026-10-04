@@ -212,7 +212,30 @@ test("hole: composite of a position sketch tied to the vertex plus a cut; counte
   assert.equal(quantityOf(cbore[3] as CreateFeatureOp, "depth"), "4 mm");
   assert.equal((cbore[2] as CreateSketchOp).dimensions[0]!.value.expr, "9 mm");
 
-  assert.throws(() => proposeDirect({ ...hole, style: "countersink" }, ctx, new Map()), /countersink/);
+  // Countersink: a chamfer on the rim the cut created at each centre. 90 deg is symmetric; 82 deg (inch flat heads) is not.
+  const csk90 = proposeDirect({ ...hole, style: "countersink", countersink: { diameter: mm(9), angle: deg(90) } }, ctx, new Map());
+  assert.deepEqual(csk90.map((o) => [o.op, o.id, o.rung]), [
+    ["createSketch", "h1.sketch", "composite"],
+    ["createFeature", "h1", "composite"],
+    ["createFeature", "h1.csk", "composite"],
+  ]);
+  const chamfer90 = csk90[2] as CreateFeatureOp;
+  assert.equal(chamfer90.featureType, "chamfer");
+  assert.deepEqual(enumOf(chamfer90, "chamferType"), { name: "ChamferType", value: "EQUAL_OFFSETS" });
+  assert.equal(quantityOf(chamfer90, "width"), "2 mm");
+  assert.deepEqual(selectionsOf(chamfer90, "entities"), [{ kind: "createdBy", feature: "h1", entity: "edge", where: { type: "circle", radius: 0.0025, near: [0.025, 0.015, 0.01] } }]);
+  const chamfer82 = proposeDirect({ ...hole, style: "countersink", countersink: { diameter: mm(9), angle: deg(82) } }, ctx, new Map())[2] as CreateFeatureOp;
+  assert.deepEqual(enumOf(chamfer82, "chamferType"), { name: "ChamferType", value: "TWO_OFFSETS" });
+  assert.equal(quantityOf(chamfer82, "width1"), "2 mm");
+  assert.ok(Math.abs(parseFloat(quantityOf(chamfer82, "width2")) - 2 / Math.tan((41 * Math.PI) / 180)) < 1e-6);
+  // A drill point cannot be extruded: the cut says so and is approximated; a through hole has no tip to lose.
+  const tipped = proposeDirect({ ...hole, end: { type: "blind", depth: mm(10) }, drillTip: { angle: deg(118) } }, ctx, new Map());
+  assert.equal(tipped[1]!.rung, "approximated");
+  assert.match(tipped[1]!.intent, /118 deg drill point/);
+  assert.equal(tipped[0]!.rung, "composite");
+  assert.equal(proposeDirect({ ...hole, drillTip: { angle: deg(118) } }, ctx, new Map())[1]!.rung, "composite", "through holes keep no tip");
+  assert.throws(() => proposeDirect({ ...hole, style: "countersink" }, ctx, new Map()), /without countersink/);
+  assert.throws(() => proposeDirect({ ...hole, style: "countersink", countersink: { diameter: mm(4), angle: deg(90) } }, ctx, new Map()), /not larger than the hole/);
   assert.throws(() => proposeDirect({ ...hole, positions: [{ kind: "topo", entity: "vertex", createdBy: "f1" }] }, ctx, new Map()), /no recorded point/);
   assert.throws(() => proposeDirect({ ...hole, startFace: { kind: "topo", entity: "face", createdBy: "f2" } }, ctx, new Map()), /no plane signature/);
 });
@@ -244,4 +267,29 @@ test("the plan schema accepts the new selection kinds and a sketch transform", (
   const emptySeeds = structuredClone(ok) as { ops: Array<{ parameters?: Array<{ selections: unknown[] }> }> };
   emptySeeds.ops[2]!.parameters![0]!.selections = [{ kind: "features", features: [] }];
   assert.throws(() => validateStepProposal(emptySeeds));
+});
+
+test("the first real extraction (LCDM2) has a direct mapping for every feature", () => {
+  const lcdm2 = JSON.parse(readFileSync(fileURLToPath(new URL("../../ir/fixtures/lcdm2.ir.json", import.meta.url)), "utf8")) as Document;
+  assertValidDocument(lcdm2);
+  const ctxFor = { ...ctx, ir: lcdm2 } as unknown as StepContext;
+  const parameters = new Map(lcdm2.parameters.map((p) => [p.id, p]));
+  const summary = lcdm2.partStudio.features.map((f) => {
+    const ops = proposeDirect(f, ctxFor, parameters);
+    validateStepProposal({ reasoning: "t", ops });
+    return `${f.op}:${ops.map((o) => (o.op === "createFeature" ? o.featureType : o.op)).join("+")}`;
+  });
+  assert.deepEqual(summary, [
+    "sketch:createSketch",
+    "revolve:createFeature".replace("createFeature", "revolve"),
+    "chamfer:chamfer",
+    "sketch:createSketch",
+    "hole:createSketch+extrude+chamfer", // #8-32 tapped, countersunk: tap drill plus a chamfer for the cone
+    "sketch:createSketch",
+    "hole:createSketch+extrude+chamfer", // 5/16 with near-side countersink
+    "sketch:createSketch",
+    "hole:createSketch+extrude", // #9 plain blind hole
+  ]);
+  // The tapped hole is honest about what was lost.
+  assert.match(lcdm2.partStudio.features[4]!.fidelity.notes ?? "", /tap drill/);
 });

@@ -91,29 +91,56 @@ test("Level 1 divergence stops the build at the offending feature", async () => 
 
 test("a feature the direct proposers refuse is recorded as dropped and later features are not attempted", async () => {
   const ir = structuredClone(plate);
-  // A countersunk hole: every MVP op has a proposer now, but countersinks are refused rather than approximated.
+  // A circular pattern with skipped instances: every MVP op has a proposer, but skipped instances are refused rather than approximated.
   ir.partStudio.features.splice(4, 0, {
     id: "f4b",
-    src: { name: "CSK Hole1" },
-    op: "hole",
+    src: { name: "CirPattern1" },
+    op: "circularPattern",
     suppressed: false,
     fidelity: { rung: "pending" },
-    style: "countersink",
-    startFace: { kind: "topo", entity: "face", createdBy: "f2", signature: { surface: "plane", normal: [0, 0, 1], offset: 0.01 } },
-    positions: [{ kind: "topo", entity: "vertex", createdBy: "f4", signature: { point: [0.01, 0.01, 0.01] } }],
-    diameter: { expr: "3 mm", value: 0.003, unit: "m" },
-    end: { type: "throughAll" },
-    countersink: { diameter: { expr: "6 mm", value: 0.006, unit: "m" }, angle: { expr: "90 deg", value: Math.PI / 2, unit: "rad" } },
+    seeds: ["f4"],
+    axis: { kind: "topo", entity: "face", createdBy: "f4", signature: { surface: "cylinder", axis: [0, 0, 1], axisPoint: [0.025, 0.015, 0], radius: 0.0025 } },
+    count: { expr: "4", value: 4, unit: "" },
+    angle: { expr: "360 deg", value: 2 * Math.PI, unit: "rad" },
+    equalSpacing: true,
+    flip: false,
+    skipped: [2],
   });
   ir.partStudio.features[5] = { ...ir.partStudio.features[5]!, edges: [{ kind: "topo", entity: "edge", createdBy: "f4b" }] } as typeof ir.partStudio.features[5];
   assertValidDocument(ir);
 
   const report = await buildDocument(ir, new FakeOnshape(plateWorld(plate)));
-  const hole = report.features.find((f) => f.irId === "f4b")!;
-  assert.equal(hole.status, "failed");
-  assert.equal(hole.rung, "dropped");
-  assert.match(hole.error!, /countersink holes have no direct proposer/);
+  const pattern = report.features.find((f) => f.irId === "f4b")!;
+  assert.equal(pattern.status, "failed");
+  assert.equal(pattern.rung, "dropped");
+  assert.match(pattern.error!, /skipped instances has no direct proposer/);
   assert.equal(report.features.find((f) => f.irId === "f5"), undefined);
+});
+
+test("what the extractor could not carry is shown in the report as a source note", async () => {
+  const ir = structuredClone(plate);
+  ir.partStudio.features[3]!.fidelity = { rung: "pending", notes: "tapped hole: written as its tap drill; threads are not modelled" };
+  const report = await buildDocument(ir, new FakeOnshape(plateWorld(plate)), { behavior: false });
+  const cut = report.features.find((f) => f.irId === "f4")!;
+  assert.equal(cut.status, "built");
+  assert.deepEqual(cut.notes, ["source: tapped hole: written as its tap drill; threads are not modelled"]);
+  assert.match(renderMarkdown(report), /- Note: source: tapped hole/);
+});
+
+test("a sketch Onshape regenerates with a WARNING is reported as approximated, not exact", async () => {
+  const api = new FakeOnshape(plateWorld(plate));
+  const original = api.addFeature.bind(api);
+  api.addFeature = async (ref, feature) => {
+    const res = await original(ref, feature);
+    return feature.name === "Sketch2" ? { ...res, featureState: { featureStatus: "WARNING" } } : res;
+  };
+  const report = await buildDocument(plate, api, { behavior: false });
+  const sk2 = report.features.find((f) => f.irId === "f3")!;
+  assert.equal(sk2.status, "built");
+  assert.equal(sk2.featureStatus, "WARNING");
+  assert.equal(sk2.rung, "approximated");
+  assert.match(sk2.notes.join("\n"), /WARNING: at least one constraint/);
+  assert.equal(report.features.find((f) => f.irId === "f1")!.rung, "exact", "other sketches are unaffected");
 });
 
 test("an accepted plan replays without asking the planner again", async () => {

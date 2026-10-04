@@ -331,7 +331,7 @@ namespace Slop.SolidWorks.Extract
         public void Hole(TreeNode node, IWizardHoleFeatureData2 d)
         {
             int type = d.Type;
-            string style = HoleStyle(type, out string why) ?? throw new UnsupportedException(why);
+            string style = HoleStyle(type, out string why, out bool nearCountersink) ?? throw new UnsupportedException(why);
             var notes = new List<string>();
             if (why != null) notes.Add(why);
 
@@ -370,7 +370,7 @@ namespace Slop.SolidWorks.Extract
                         .Add("signature", new JObj().Add("point", JArr.Vec(at)))
                         .Add("probe", JArr.Vec(at)));
                 }
-                end = HoleEnd(d, ec, dims, state, node.Name);
+                end = HoleEnd(d, ec, dims, state, node.Name, tapped: Name<swWzdHoleTypes_e>(type).Contains("Tap"));
             });
             // Without a face selection the hole starts on the placement sketch's face.
             startFace = startFace ?? (ctx.IrByName[sketchNode.Name].Node["plane"] as JObj);
@@ -378,16 +378,45 @@ namespace Slop.SolidWorks.Extract
             if (positions.Count == 0) throw new UnsupportedException("no hole positions");
 
             bool tapped = Name<swWzdHoleTypes_e>(type).Contains("Tap");
-            double diameter = style == "simple"
-                ? First(() => d.HoleDiameter, () => d.Diameter, () => d.TapDrillDiameter, () => d.ThruHoleDiameter)
-                : First(() => d.ThruHoleDiameter, () => d.HoleDiameter, () => d.Diameter);
+            // UNVERIFIED: which diameter property each hole type fills in; the first one set wins.
+            // A tapped hole is carried as its tap drill (the thread is not modelled), so tap-drill sizes come first.
+            double diameter = tapped
+                ? First(() => d.TapDrillDiameter, () => d.ThruTapDrillDiameter, () => d.HoleDiameter, () => d.Diameter)
+                : style == "simple"
+                    ? First(() => d.HoleDiameter, () => d.Diameter, () => d.ThruHoleDiameter)
+                    : First(() => d.ThruHoleDiameter, () => d.HoleDiameter, () => d.Diameter);
             if (diameter <= 0) throw new UnsupportedException("no hole diameter could be read");
             JObj counterbore = style == "counterbore"
                 ? new JObj().Add("diameter", dims.Length(d.CounterBoreDiameter)).Add("depth", dims.Length(d.CounterBoreDepth))
                 : null;
+            // A countersunk hole type carries its cone in CounterSink*; a plain or tapped hole with the
+            // "near side countersink" option carries it in NearCounterSink*. Both are one cone at the start face.
             JObj countersink = style == "countersink"
-                ? new JObj().Add("diameter", dims.Length(d.CounterSinkDiameter)).Add("angle", dims.Angle(d.CounterSinkAngle))
+                ? nearCountersink
+                    ? new JObj().Add("diameter", dims.Length(d.NearCounterSinkDiameter)).Add("angle", dims.Angle(d.NearCounterSinkAngle))
+                    : new JObj().Add("diameter", dims.Length(d.CounterSinkDiameter)).Add("angle", dims.Angle(d.CounterSinkAngle))
                 : null;
+            if (countersink != null && ((JObj)countersink["diameter"])["value"] is double csk && csk <= diameter)
+                throw new UnsupportedException($"countersink diameter {((JObj)countersink["diameter"])["expr"]} is not larger than the hole ({dims.Length(diameter)["expr"]}); cannot read the cone");
+
+            // A blind hole may end in a drill point. The property alone does not say whether the bottom is
+            // flat or pointed (f7 of the first test part was flat with DrillAngle still set), so count the
+            // conical faces coaxial with the hole beyond the one a countersink accounts for.
+            JObj drillTip = null;
+            if (ec == (int)swEndConditions_e.swEndCondBlind && startFace.GetObj("signature")?["normal"] is JArr axisJ)
+            {
+                var axis = Vec.Normalize(new[] { (double)axisJ[0], (double)axisJ[1], (double)axisJ[2] });
+                var centres = positions.Cast<JObj>().Select(p => (JArr)p.GetObj("signature")["point"]).Select(a => new[] { (double)a[0], (double)a[1], (double)a[2] }).ToList();
+                int coaxialCones = CoaxialCones(node.Feature, axis, centres);
+                int expected = (countersink != null ? 1 : 0) * positions.Count;
+                if (coaxialCones > expected)
+                {
+                    double tip = Com.Try(() => d.DrillAngle, 0);
+                    if (!(tip > 0 && tip < Math.PI)) tip = 118 * Math.PI / 180;
+                    drillTip = new JObj().Add("angle", dims.Angle(tip));
+                    notes.Add($"ends in a {Units.FormatNumber(tip * 180 / Math.PI)} deg drill point");
+                }
+            }
             string standard = Com.Try(() => d.Standard);
             JObj standardNode = string.IsNullOrEmpty(standard) ? null : new JObj()
                 .Add("name", standard)
@@ -403,13 +432,45 @@ namespace Slop.SolidWorks.Extract
                 .Add("end", end)
                 .Add("counterbore", counterbore)
                 .Add("countersink", countersink)
+                .Add("drillTip", drillTip)
                 .Add("standard", standardNode), Ext(node, d, typeof(IWizardHoleFeatureData2)).Add("holeType", Name<swWzdHoleTypes_e>(type)), notes);
         }
 
-        /// <summary>simple, counterbore or countersink; null (with the reason) for shapes the IR cannot hold.</summary>
-        private static string HoleStyle(int type, out string note)
+        /// <summary>Conical faces of a feature whose axis is the hole axis through one of the centres (countersinks and drill points).</summary>
+        private static int CoaxialCones(Feature feature, double[] axis, List<double[]> centres)
+        {
+            int n = 0;
+            foreach (var face in Com.Objects(Com.Try(() => feature.GetFaces())).OfType<Face2>())
+            {
+                var surface = Com.Try(() => (Surface)face.GetSurface());
+                if (surface == null || !Com.Try(() => surface.IsCone())) continue;
+                var c = Com.Doubles(Com.Try(() => surface.ConeParams));
+                if (c == null || c.Length < 6) continue;
+                var coneAxis = Vec.Normalize(Vec.At(c, 3));
+                if (!Vec.Parallel(coneAxis, axis, 1e-6)) continue;
+                var origin = Vec.At(c, 0);
+                bool through = centres.Any(p =>
+                {
+                    var dvec = Vec.Sub(p, origin);
+                    var off = Vec.Sub(dvec, Vec.Scale(axis, Vec.Dot(dvec, axis)));
+                    return Vec.Norm(off) < 1e-6;
+                });
+                if (through) n++;
+            }
+            return n;
+        }
+
+        /// <summary>
+        /// simple, counterbore or countersink; null (with the reason) for shapes
+        /// the IR cannot hold. A plain or tapped hole with the Hole Wizard's
+        /// "near side countersink" option is a countersunk hole geometrically
+        /// (<paramref name="nearCountersink"/> says where to read the cone from).
+        /// Far-side and middle countersinks have no IR form.
+        /// </summary>
+        private static string HoleStyle(int type, out string note, out bool nearCountersink)
         {
             note = null;
+            nearCountersink = false;
             switch ((swWzdHoleTypes_e)type)
             {
                 case swWzdHoleTypes_e.swSimple:
@@ -420,6 +481,8 @@ namespace Slop.SolidWorks.Extract
                 case swWzdHoleTypes_e.swTapThru:
                 case swWzdHoleTypes_e.swTapBlindCosmeticThread:
                 case swWzdHoleTypes_e.swTapThruCosmeticThread:
+                case swWzdHoleTypes_e.swTapThruThreadThru:
+                case swWzdHoleTypes_e.swTapBlindRemoveThread:
                 case swWzdHoleTypes_e.swPipeTapBlind:
                 case swWzdHoleTypes_e.swPipeTapThru:
                     return "simple";
@@ -435,19 +498,33 @@ namespace Slop.SolidWorks.Extract
                 case swWzdHoleTypes_e.swCounterSinkBlindWithoutHeadClearance:
                 case swWzdHoleTypes_e.swCounterSinkThruWithoutHeadClearance:
                     return "countersink";
+                case swWzdHoleTypes_e.swHoleBlindCounterSinkTop:
+                case swWzdHoleTypes_e.swHoleThruCounterSinkTop:
+                case swWzdHoleTypes_e.swTapBlindCounterSinkTop:
+                case swWzdHoleTypes_e.swTapThruCounterSinkTop:
+                case swWzdHoleTypes_e.swTapBlindCosmeticThreadCounterSinkTop:
+                case swWzdHoleTypes_e.swTapThruCosmeticThreadCounterSinkTop:
+                case swWzdHoleTypes_e.swTapThruThreadThruCounterSinkTop:
+                case swWzdHoleTypes_e.swPipeTapBlindCounterSinkTop:
+                case swWzdHoleTypes_e.swPipeTapThruCounterSinkTop:
+                    nearCountersink = true;
+                    return "countersink";
                 default:
-                    note = $"{Name<swWzdHoleTypes_e>(type)} holes (extra countersinks, tapers, slots, counterdrills) have no IR form yet";
+                    note = $"{Name<swWzdHoleTypes_e>(type)} holes (far-side or middle countersinks, tapers, slots, counterdrills) have no IR form yet";
                     return null;
             }
         }
 
-        private JObj HoleEnd(IWizardHoleFeatureData2 d, int ec, DimMatcher dims, int state, string where)
+        private JObj HoleEnd(IWizardHoleFeatureData2 d, int ec, DimMatcher dims, int state, string where, bool tapped)
         {
             switch ((swEndConditions_e)ec)
             {
                 case swEndConditions_e.swEndCondBlind:
                     // UNVERIFIED: which depth property applies per hole type; the first one set wins.
-                    return new JObj().Add("type", "blind").Add("depth", dims.Length(First(() => d.HoleDepth, () => d.Depth, () => d.ThruHoleDepth, () => d.TapDrillDepth)));
+                    // A tapped hole is carried as its tap drill, so the drill depth comes first for it.
+                    return new JObj().Add("type", "blind").Add("depth", dims.Length(tapped
+                        ? First(() => d.TapDrillDepth, () => d.HoleDepth, () => d.Depth, () => d.ThruHoleDepth)
+                        : First(() => d.HoleDepth, () => d.Depth, () => d.ThruHoleDepth, () => d.TapDrillDepth)));
                 case swEndConditions_e.swEndCondThroughAll:
                 case swEndConditions_e.swEndCondThroughAllBoth:
                     return new JObj().Add("type", "throughAll");

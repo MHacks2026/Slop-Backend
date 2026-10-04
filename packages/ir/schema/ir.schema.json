@@ -347,6 +347,7 @@
             "end": { "$ref": "#/$defs/EndCondition" },
             "counterbore": { "type": "object", "required": ["diameter", "depth"], "additionalProperties": false, "properties": { "diameter": { "$ref": "#/$defs/Quantity" }, "depth": { "$ref": "#/$defs/Quantity" } } },
             "countersink": { "type": "object", "required": ["diameter", "angle"], "additionalProperties": false, "properties": { "diameter": { "$ref": "#/$defs/Quantity" }, "angle": { "$ref": "#/$defs/Quantity" } } },
+            "drillTip": { "type": "object", "required": ["angle"], "additionalProperties": false, "properties": { "angle": { "$ref": "#/$defs/Quantity" } }, "description": "Blind hole ending in a drill point of this included angle; absent for flat bottoms and through holes." },
             "standard": { "type": "object", "required": ["name"], "additionalProperties": false, "properties": { "name": { "type": "string" }, "type": { "type": "string" }, "size": { "type": "string" } } }
           }
         },

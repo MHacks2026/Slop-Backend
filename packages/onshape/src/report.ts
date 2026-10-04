@@ -23,7 +23,8 @@ export function renderMarkdown(r: BuildReport): string {
   lines.push(`| --- | --- | --- | --- | --- | --- | --- | --- |`);
   r.features.forEach((f, i) => {
     const checks = f.checks.length ? `${f.checks.filter((c) => c.pass).length}/${f.checks.length}` : "";
-    lines.push(`| ${i + 1} | ${f.srcName} | ${f.op} | ${f.rung} | ${f.status}${f.featureStatus ? ` (${f.featureStatus})` : ""} | ${f.attempts} | ${f.onshapeFeatureId ?? ""} | ${checks} |`);
+    const rung = f.deviation !== undefined ? `${f.rung} (deviation ${f.deviation.toExponential(2)})` : f.rung;
+    lines.push(`| ${i + 1} | ${f.srcName} | ${f.op} | ${rung} | ${f.status}${f.featureStatus ? ` (${f.featureStatus})` : ""} | ${f.attempts} | ${f.onshapeFeatureId ?? ""} | ${checks} |`);
   });
 
   for (const f of r.features) {

@@ -68,6 +68,8 @@ export class ClaudePlanner implements Planner {
   private totals: LlmUsage = { calls: 0, inputTokens: 0, outputTokens: 0, cacheReadTokens: 0 };
   private current: StepRequest | undefined;
   private history: Message[] = [];
+  /** The submit_step tool_use the last proposal came from; feedback must answer it as a tool_result. */
+  private lastSubmitId: string | undefined;
 
   constructor(private readonly cfg: ClaudeConfig) {
     if (!cfg.apiKey) {
@@ -87,7 +89,15 @@ export class ClaudePlanner implements Planner {
 
   async reviseStep(req: StepRequest, _previous: StepProposal, feedback: Feedback): Promise<StepProposal | undefined> {
     this.current = req;
-    this.history.push({ role: "user", content: describeFeedback(feedback) });
+    // The previous proposal was a submit_step tool call; the Messages API requires the next
+    // user message to answer it with a tool_result (verified live: a plain message is a 400).
+    const text = describeFeedback(feedback);
+    if (this.lastSubmitId) {
+      this.history.push({ role: "user", content: [{ type: "tool_result", tool_use_id: this.lastSubmitId, content: text }] });
+      this.lastSubmitId = undefined;
+    } else {
+      this.history.push({ role: "user", content: text });
+    }
     return this.turn();
   }
 
@@ -98,6 +108,7 @@ export class ClaudePlanner implements Planner {
         role: "user",
         content:
           `The part is built. Propose up to 10 Level 3 behaviour tests: driving dimensions to perturb and what must still hold.\n` +
+          `Each test changes exactly ONE dimension: target is a single dimension id from the list below (never a list, never "all"), expression is its new value like "60 mm".\n` +
           `Driving dimensions:\n${drivingDimensions(ir).join("\n")}\n` +
           `Reply by calling submit_behavior_tests.`,
       },
@@ -158,6 +169,15 @@ export class ClaudePlanner implements Planner {
       this.history.push({ role: "assistant", content: data.content });
       const submitted = data.content.find((c) => c.type === "tool_use" && c.name === "submit_step");
       if (submitted && submitted.type === "tool_use") {
+        // Any other tool calls in the same turn are answered now; submit_step itself is answered
+        // by the executor's feedback (reviseStep) or never, if the step is accepted.
+        const others: Content[] = [];
+        for (const c of data.content) {
+          if (c.type !== "tool_use" || c.id === submitted.id) continue;
+          others.push({ type: "tool_result", tool_use_id: c.id, content: await this.runTool(c.name, c.input) });
+        }
+        if (others.length) this.history.push({ role: "user", content: others });
+        this.lastSubmitId = submitted.id;
         return validateStepProposal(submitted.input);
       }
       const results: Content[] = [];

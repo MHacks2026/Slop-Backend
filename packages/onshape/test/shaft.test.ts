@@ -146,8 +146,8 @@ test("the shaft builds end to end: arc, revolve about a sketch line, chamfer, of
 
 test("a sketch-entity selection that matches two sketch curves is a tie, not a guess", async () => {
   const world = shaftWorld();
-  // Two coincident copies of l1 in the sketch's edge list.
-  world.topology.Sketch1!.edge!.push(line("E_l1_dup", [0, 0, 0], [0.02, 0, 0]));
+  // A second line a few microns from l1: within the probe tolerance, but not the identical twin Onshape lists for every sketch curve.
+  world.topology.Sketch1!.edge!.push(line("E_l1_dup", [0, 0.000005, 0], [0.02, 0.000005, 0]));
   const report = await buildDocument(shaft, new FakeOnshape(world), { behavior: false });
   const revolve = report.features.find((f) => f.irId === "f2")!;
   assert.equal(revolve.status, "failed");
@@ -161,4 +161,15 @@ test("a sketch-entity selection with no nearby curve fails with a reason", async
   const revolve = report.features.find((f) => f.irId === "f2")!;
   assert.equal(revolve.status, "failed");
   assert.match(revolve.error!, /no edge of sketch f1 matches entity "l1"/);
+});
+
+test("sketch curves that Onshape lists twice (wire edge and region edge) count once", async () => {
+  // Verified live: qCreatedBy(sketch, EDGE) returns every sketch line twice with identical geometry.
+  const world = shaftWorld();
+  const doubled = world.topology.Sketch1!.edge!.map((e) => ({ ...e, ids: [`${e.ids[0]}_region`] }));
+  world.topology.Sketch1!.edge!.push(...doubled);
+  const report = await buildDocument(shaft, new FakeOnshape(world), { behavior: false });
+  const revolve = report.features.find((f) => f.irId === "f2")!;
+  assert.equal(revolve.status, "built", revolve.error ?? "");
+  assert.deepEqual(revolve.refs.find((r) => r.parameterId === "axis")!.deterministicIds, ["E_l1"]);
 });

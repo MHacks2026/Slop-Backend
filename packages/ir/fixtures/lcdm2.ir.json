@@ -1,0 +1,1171 @@
+{
+  "irVersion": "0.1.0",
+  "source": {
+    "cad": "solidworks",
+    "version": "2026",
+    "fileName": "LCDM2.SLDPRT",
+    "fileHash": "ff5ea8cd2b9b1365ad99d81dbbfdc1b69813766936eea78ae995a07c57c6233b",
+    "extractedAt": "2026-10-04T03:40:30Z"
+  },
+  "parameters": [],
+  "partStudio": {
+    "id": "ps1",
+    "name": "LCDM2",
+    "features": [
+      {
+        "id": "f1",
+        "src": {
+          "name": "Sketch2",
+          "type": "ProfileFeature"
+        },
+        "op": "sketch",
+        "suppressed": false,
+        "fidelity": {
+          "rung": "pending"
+        },
+        "plane": {
+          "kind": "datum",
+          "name": "TOP"
+        },
+        "transform": [1, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0, 0, 1],
+        "entities": [
+          {
+            "id": "l1",
+            "type": "line",
+            "construction": false,
+            "srcId": "Line5",
+            "p0": [-0.02870835, 0],
+            "p1": [0.02870835, 0]
+          },
+          {
+            "id": "l2",
+            "type": "line",
+            "construction": false,
+            "srcId": "Line6",
+            "p0": [-0.02870835, 0],
+            "p1": [-0.02870835, 0.0079375]
+          },
+          {
+            "id": "l3",
+            "type": "line",
+            "construction": false,
+            "srcId": "Line10",
+            "p0": [-0.02870835, 0.0079375],
+            "p1": [-0.00648335, 0.0079375]
+          },
+          {
+            "id": "l4",
+            "type": "line",
+            "construction": false,
+            "srcId": "Line11",
+            "p0": [-0.00648335, 0.0079375],
+            "p1": [-0.00648335, 0.0127]
+          },
+          {
+            "id": "l5",
+            "type": "line",
+            "construction": false,
+            "srcId": "Line12",
+            "p0": [-0.00648335, 0.0127],
+            "p1": [0.00474345, 0.0127]
+          },
+          {
+            "id": "l6",
+            "type": "line",
+            "construction": false,
+            "srcId": "Line13",
+            "p0": [0.02870835, 0],
+            "p1": [0.02870835, 0.0039243]
+          },
+          {
+            "id": "l7",
+            "type": "line",
+            "construction": false,
+            "srcId": "Line14",
+            "p0": [0.02870835, 0.0039243],
+            "p1": [0.00474345, 0.0039243]
+          },
+          {
+            "id": "l8",
+            "type": "line",
+            "construction": false,
+            "srcId": "Line15",
+            "p0": [0.00474345, 0.0039243],
+            "p1": [0.00474345, 0.0127]
+          },
+          {
+            "id": "p1",
+            "type": "point",
+            "construction": false,
+            "p": [0, 0]
+          }
+        ],
+        "constraints": [
+          {
+            "type": "coincident",
+            "args": ["l1.start", "l2.start"]
+          },
+          {
+            "type": "coincident",
+            "args": ["l1.end", "l6.start"]
+          },
+          {
+            "type": "coincident",
+            "args": ["l2.end", "l3.start"]
+          },
+          {
+            "type": "coincident",
+            "args": ["l3.end", "l4.start"]
+          },
+          {
+            "type": "coincident",
+            "args": ["l4.end", "l5.start"]
+          },
+          {
+            "type": "coincident",
+            "args": ["l5.end", "l8.end"]
+          },
+          {
+            "type": "coincident",
+            "args": ["l6.end", "l7.start"]
+          },
+          {
+            "type": "coincident",
+            "args": ["l7.end", "l8.start"]
+          },
+          {
+            "type": "midpoint",
+            "args": ["p1", "l1"]
+          },
+          {
+            "type": "coincident",
+            "args": ["ORIGIN", "p1"]
+          },
+          {
+            "type": "horizontal",
+            "args": ["l1"]
+          },
+          {
+            "type": "vertical",
+            "args": ["l2"]
+          },
+          {
+            "type": "horizontal",
+            "args": ["l3"]
+          },
+          {
+            "type": "vertical",
+            "args": ["l4"]
+          },
+          {
+            "type": "horizontal",
+            "args": ["l5"]
+          },
+          {
+            "type": "vertical",
+            "args": ["l6"]
+          },
+          {
+            "type": "horizontal",
+            "args": ["l7"]
+          },
+          {
+            "type": "vertical",
+            "args": ["l8"]
+          }
+        ],
+        "dimensions": [
+          {
+            "id": "D1@Sketch2",
+            "type": "distance",
+            "args": ["l1.start", "l1.end"],
+            "value": {
+              "expr": "2.2605 in",
+              "value": 0.0574167,
+              "unit": "m"
+            },
+            "driving": true
+          },
+          {
+            "id": "D2@Sketch2",
+            "type": "distance",
+            "args": ["l1.start", "l2.end"],
+            "value": {
+              "expr": "0.3125 in",
+              "value": 0.0079375,
+              "unit": "m"
+            },
+            "driving": true
+          },
+          {
+            "id": "D3@Sketch2",
+            "type": "distance",
+            "args": ["l2.end", "l3.end"],
+            "value": {
+              "expr": "0.875 in",
+              "value": 0.022225,
+              "unit": "m"
+            },
+            "driving": true
+          },
+          {
+            "id": "D4@Sketch2",
+            "type": "distance",
+            "args": ["l3.end", "l4.end"],
+            "value": {
+              "expr": "0.1875 in",
+              "value": 0.0047625,
+              "unit": "m"
+            },
+            "driving": true
+          },
+          {
+            "id": "D5@Sketch2",
+            "type": "distance",
+            "args": ["l4.end", "l5.end"],
+            "value": {
+              "expr": "0.442 in",
+              "value": 0.0112268,
+              "unit": "m"
+            },
+            "driving": true
+          },
+          {
+            "id": "D6@Sketch2",
+            "type": "distance",
+            "args": ["l1.end", "l6.end"],
+            "value": {
+              "expr": "0.1545 in",
+              "value": 0.0039243,
+              "unit": "m"
+            },
+            "driving": true
+          }
+        ],
+        "ext": {
+          "sw": {
+            "name": "Sketch2",
+            "type": "ProfileFeature",
+            "constrainedStatus": "swFullyConstrained"
+          }
+        }
+      },
+      {
+        "id": "f2",
+        "src": {
+          "name": "Revolve1",
+          "type": "Revolution"
+        },
+        "op": "revolve",
+        "suppressed": false,
+        "fidelity": {
+          "rung": "pending"
+        },
+        "mode": "new",
+        "profile": {
+          "kind": "feature-output",
+          "feature": "f1",
+          "role": "region"
+        },
+        "axis": {
+          "kind": "sketch-entity",
+          "sketch": "f1",
+          "entity": "l1"
+        },
+        "angle": {
+          "expr": "360 deg",
+          "value": 6.28318530718,
+          "unit": "rad"
+        },
+        "flip": false,
+        "ext": {
+          "sw": {
+            "name": "Revolve1",
+            "type": "Revolution",
+            "data": {
+              "Type": 3,
+              "ReverseDirection": false,
+              "ThinWallType": -1,
+              "Merge": true,
+              "FeatureScope": true,
+              "AutoSelect": false,
+              "AssemblyFeatureScope": true,
+              "AutoSelectComponents": true,
+              "PropagateFeatureToParts": false
+            },
+            "revolveType": "swRevolveTypeOneDirection360Degrees"
+          }
+        },
+        "evidence": {
+          "bodyCount": 1,
+          "volume": 1.12472000745E-05,
+          "area": 0.00360860142583,
+          "centerOfMass": [-0.00559794445429, 0, 0],
+          "bbox": {
+            "min": [-0.02870835, -0.0127, -0.0127],
+            "max": [0.02870835, 0.0127, 0.0127]
+          },
+          "faceCount": 7,
+          "edgeCount": 6,
+          "vertexCount": 0,
+          "faceTypes": {
+            "cylinder": 3,
+            "plane": 4
+          }
+        }
+      },
+      {
+        "id": "f3",
+        "src": {
+          "name": "Chamfer1",
+          "type": "Chamfer"
+        },
+        "op": "chamfer",
+        "suppressed": false,
+        "fidelity": {
+          "rung": "pending"
+        },
+        "spec": {
+          "type": "distanceAngle",
+          "distance": {
+            "expr": "0.026 in",
+            "value": 0.0006604,
+            "unit": "m"
+          },
+          "angle": {
+            "expr": "45 deg",
+            "value": 0.785398163397,
+            "unit": "rad"
+          },
+          "flip": true
+        },
+        "edges": [
+          {
+            "kind": "topo",
+            "entity": "edge",
+            "createdBy": "f2",
+            "srcPersistId": "sw:OEoAAAMAAAD//v8AAAAAAP//AQALAG1vRWRnZVJlZl9jAQAAAAAAAAAEAAAAAAMAAAAAAAB9w5QlrUmyVH3DlCWtSbJUAAD//wEAFwBtb0Zyb21Ta3RFbnRTdXJmSWRSZXBfYwAA//8BAAYAbW9GUl9j//8BAA0AbW9FeHRPYmplY3RfY///AQARAG1vQ1N0cmluZ0hhbmRsZV9j//7/JUMAOgBcAFUAcwBlAHIAcwBcAGkAbQBpAGIAcgBcAEQAbwB3AG4AbABvAGEAZABzAFwATABDAEQATQAyAC4AUwBMAEQAUABSAFQACYD//v8FTABDAEQATQAyAAIAAA3lrmr//v8A//7/AP/+/wAACAAAAAAAAAAAAAAAAAAAAAD//v8HRABlAGYAYQB1AGwAdAAAAAAAAAAAAAAAAAAAAAAANwAAAP73rmoLAAAAA4AAAAWACAA3AAAA/veuagwAAAADgAAABYAIADcAAAD+965qDAAAAAOAAAAFgAgANwAAAP73rmoMAAAAAAAAAAAAAAA4SgAAAAAAAA==",
+            "signature": {
+              "curve": "circle",
+              "radius": 0.0127,
+              "center": [-0.00648335, 0, 0],
+              "length": 0.0797964534012
+            },
+            "probe": [-0.00648335, 0, -0.0127]
+          },
+          {
+            "kind": "topo",
+            "entity": "edge",
+            "createdBy": "f2",
+            "srcPersistId": "sw:OEoAAAMAAAD//v8AAAAAAP//AQALAG1vRWRnZVJlZl9jAQAAAAAAAAAEAAAAAAMAAAAAAAB9w5QlrUmyVH3DlCWtSbJUAAD//wEAFwBtb0Zyb21Ta3RFbnRTdXJmSWRSZXBfYwAA//8BAAYAbW9GUl9j//8BAA0AbW9FeHRPYmplY3RfY///AQARAG1vQ1N0cmluZ0hhbmRsZV9j//7/JUMAOgBcAFUAcwBlAHIAcwBcAGkAbQBpAGIAcgBcAEQAbwB3AG4AbABvAGEAZABzAFwATABDAEQATQAyAC4AUwBMAEQAUABSAFQACYD//v8FTABDAEQATQAyAAIAAA3lrmr//v8A//7/AP/+/wAACAAAAAAAAAAAAAAAAAAAAAD//v8HRABlAGYAYQB1AGwAdAAAAAAAAAAAAAAAAAAAAAAANwAAAP73rmoMAAAAA4AAAAWACAA3AAAA/veuahEAAAADgAAABYAIADcAAAD+965qEQAAAAOAAAAFgAgANwAAAP73rmoRAAAAAAAAAAAAAAA4SgAAAAAAAA==",
+            "signature": {
+              "curve": "circle",
+              "radius": 0.0127,
+              "center": [0.00474345, 0, 0],
+              "length": 0.0797964534012
+            },
+            "probe": [0.00474345, 0, -0.0127]
+          },
+          {
+            "kind": "topo",
+            "entity": "edge",
+            "createdBy": "f2",
+            "srcPersistId": "sw:OEoAAAMAAAD//v8AAAAAAP//AQALAG1vRWRnZVJlZl9jAQAAAAAAAAAEAAAAAAMAAAAAAAB9w5QlrUmyVH3DlCWtSbJUAAD//wEAFwBtb0Zyb21Ta3RFbnRTdXJmSWRSZXBfYwAA//8BAAYAbW9GUl9j//8BAA0AbW9FeHRPYmplY3RfY///AQARAG1vQ1N0cmluZ0hhbmRsZV9j//7/JUMAOgBcAFUAcwBlAHIAcwBcAGkAbQBpAGIAcgBcAEQAbwB3AG4AbABvAGEAZABzAFwATABDAEQATQAyAC4AUwBMAEQAUABSAFQACYD//v8FTABDAEQATQAyAAIAAA3lrmr//v8A//7/AP/+/wAACAAAAAAAAAAAAAAAAAAAAAD//v8HRABlAGYAYQB1AGwAdAAAAAAAAAAAAAAAAAAAAAAANwAAAP73rmoSAAAAA4AAAAWACAA3AAAA/veuahAAAAADgAAABYAIADcAAAD+965qEAAAAAOAAAAFgAgANwAAAP73rmoQAAAAAAAAAAAAAAA4SgAAAAAAAA==",
+            "signature": {
+              "curve": "circle",
+              "radius": 0.0039243,
+              "center": [0.02870835, 0, 0],
+              "length": 0.024657104101
+            },
+            "probe": [0.02870835, 0, -0.0039243]
+          },
+          {
+            "kind": "topo",
+            "entity": "edge",
+            "createdBy": "f2",
+            "srcPersistId": "sw:OEoAAAMAAAD//v8AAAAAAP//AQALAG1vRWRnZVJlZl9jAQAAAAAAAAAEAAAAAAMAAAAAAAB9w5QlrUmyVH3DlCWtSbJUAAD//wEAFwBtb0Zyb21Ta3RFbnRTdXJmSWRSZXBfYwAA//8BAAYAbW9GUl9j//8BAA0AbW9FeHRPYmplY3RfY///AQARAG1vQ1N0cmluZ0hhbmRsZV9j//7/JUMAOgBcAFUAcwBlAHIAcwBcAGkAbQBpAGIAcgBcAEQAbwB3AG4AbABvAGEAZABzAFwATABDAEQATQAyAC4AUwBMAEQAUABSAFQACYD//v8FTABDAEQATQAyAAIAAA3lrmr//v8A//7/AP/+/wAACAAAAAAAAAAAAAAAAAAAAAD//v8HRABlAGYAYQB1AGwAdAAAAAAAAAAAAAAAAAAAAAAANwAAAP73rmoGAAAAA4AAAAWACAA3AAAA/veuagoAAAADgAAABYAIADcAAAD+965qCgAAAAOAAAAFgAgANwAAAP73rmoKAAAAAAAAAAAAAAA4SgAAAAAAAA==",
+            "signature": {
+              "curve": "circle",
+              "radius": 0.0079375,
+              "center": [-0.02870835, 0, 0],
+              "length": 0.0498727833757
+            },
+            "probe": [-0.02870835, 0, -0.0079375]
+          }
+        ],
+        "tangentPropagation": true,
+        "ext": {
+          "sw": {
+            "name": "Chamfer1",
+            "type": "Chamfer",
+            "data": {
+              "Type": 1,
+              "EdgeChamferAngle": 0.785398163397,
+              "LoopCount": 0,
+              "EqualDistance": false,
+              "KeepFeatures": true,
+              "TangentPropagation": true,
+              "PropagateFeatureToParts": false
+            }
+          }
+        },
+        "evidence": {
+          "bodyCount": 1,
+          "volume": 1.1197352754E-05,
+          "area": 0.00351576011807,
+          "centerOfMass": [-0.00560621832824, 0, 0],
+          "bbox": {
+            "min": [-0.02870835, -0.0127, -0.0127],
+            "max": [0.02870835, 0.0127, 0.0127]
+          },
+          "faceCount": 11,
+          "edgeCount": 10,
+          "vertexCount": 0,
+          "faceTypes": {
+            "cone": 4,
+            "cylinder": 3,
+            "plane": 4
+          }
+        }
+      },
+      {
+        "id": "f4",
+        "src": {
+          "name": "Sketch3",
+          "type": "ProfileFeature"
+        },
+        "op": "sketch",
+        "suppressed": false,
+        "fidelity": {
+          "rung": "pending"
+        },
+        "plane": {
+          "kind": "topo",
+          "entity": "face",
+          "createdBy": "f2",
+          "srcPersistId": "sw:OEoAAAMAAAD//v8AAAAAAP//AQALAG1vRmFjZVJlZl9jAQAAAAAAAAAFAAAAAAIAAAAAAAB9w5QlrUmyVH3DlCWtSbJUAAD//wEAFwBtb0Zyb21Ta3RFbnRTdXJmSWRSZXBfYwAA//8BAAYAbW9GUl9j//8BAA0AbW9FeHRPYmplY3RfY///AQARAG1vQ1N0cmluZ0hhbmRsZV9j//7/JUMAOgBcAFUAcwBlAHIAcwBcAGkAbQBpAGIAcgBcAEQAbwB3AG4AbABvAGEAZABzAFwATABDAEQATQAyAC4AUwBMAEQAUABSAFQACYD//v8FTABDAEQATQAyAAIAAA3lrmr//v8A//7/AP/+/wAACAAAAAAAAAAAAAAAAAAAAAD//v8HRABlAGYAYQB1AGwAdAAAAAAAAAAAAAAAAAAAAAAANwAAAP73rmoQAAAA//8BABMAbW9GaWxsZXRTdXJmSWRSZXBfYwAABYAIADoAAADe+K5qAgAAAAAA//8BABQAbW9XemRIb2xlU3VyZklkUmVwX2MAAAWACABCAAAAv/2uagIAAAAAAAAAAAAAAAAAAAAAADhKAAAAAAAAAAAAAA==",
+          "signature": {
+            "surface": "plane",
+            "normal": [-1, 0, 0],
+            "offset": -0.02870835,
+            "centroid": [0.02870835, 0, 0],
+            "area": 3.34675222869E-05
+          },
+          "probe": [0.02870835, 0, 0]
+        },
+        "transform": [0, 0, 1, 0.02870835, 0, 1, 0, 0, -1, 0, 0, 0, 0, 0, 0, 1],
+        "entities": [
+          {
+            "id": "p1",
+            "type": "point",
+            "construction": false,
+            "p": [0, 0]
+          }
+        ],
+        "constraints": [
+          {
+            "type": "coincident",
+            "args": ["ORIGIN", "p1"]
+          }
+        ],
+        "dimensions": [],
+        "ext": {
+          "sw": {
+            "name": "Sketch3",
+            "type": "ProfileFeature",
+            "constrainedStatus": "swFullyConstrained"
+          }
+        }
+      },
+      {
+        "id": "f5",
+        "src": {
+          "name": "#8-32 Tapped Hole1",
+          "type": "HoleWzd"
+        },
+        "op": "hole",
+        "suppressed": false,
+        "fidelity": {
+          "rung": "pending",
+          "notes": "ends in a 118 deg drill point; tapped hole: written as its tap drill; threads are not modelled"
+        },
+        "style": "countersink",
+        "positions": [
+          {
+            "kind": "topo",
+            "entity": "vertex",
+            "createdBy": "f4",
+            "role": "sketch:p1",
+            "signature": {
+              "point": [0.02870835, 0, 0]
+            },
+            "probe": [0.02870835, 0, 0]
+          }
+        ],
+        "startFace": {
+          "kind": "topo",
+          "entity": "face",
+          "createdBy": "f2",
+          "srcPersistId": "sw:OEoAAAMAAAD//v8AAAAAAP//AQALAG1vRmFjZVJlZl9jAQAAAAAAAAAFAAAAAAIAAAAAAAB9w5QlrUmyVH3DlCWtSbJUAAD//wEAFwBtb0Zyb21Ta3RFbnRTdXJmSWRSZXBfYwAA//8BAAYAbW9GUl9j//8BAA0AbW9FeHRPYmplY3RfY///AQARAG1vQ1N0cmluZ0hhbmRsZV9j//7/JUMAOgBcAFUAcwBlAHIAcwBcAGkAbQBpAGIAcgBcAEQAbwB3AG4AbABvAGEAZABzAFwATABDAEQATQAyAC4AUwBMAEQAUABSAFQACYD//v8FTABDAEQATQAyAAIAAA3lrmr//v8A//7/AP/+/wAACAAAAAAAAAAAAAAAAAAAAAD//v8HRABlAGYAYQB1AGwAdAAAAAAAAAAAAAAAAAAAAAAANwAAAP73rmoQAAAA//8BABMAbW9GaWxsZXRTdXJmSWRSZXBfYwAABYAIADoAAADe+K5qAgAAAAAA//8BABQAbW9XemRIb2xlU3VyZklkUmVwX2MAAAWACABCAAAAv/2uagIAAAAAAAAAAAAAAAAAAAAAADhKAAAAAAAAAAAAAA==",
+          "signature": {
+            "surface": "plane",
+            "normal": [-1, 0, 0],
+            "offset": -0.02870835,
+            "centroid": [0.02870835, 0, 0],
+            "area": 3.34675222869E-05
+          },
+          "probe": [0.02870835, 0, 0]
+        },
+        "diameter": {
+          "expr": "0.136 in",
+          "value": 0.0034544,
+          "unit": "m"
+        },
+        "end": {
+          "type": "blind",
+          "depth": {
+            "expr": "0.47 in",
+            "value": 0.011938,
+            "unit": "m"
+          }
+        },
+        "countersink": {
+          "diameter": {
+            "expr": "0.214 in",
+            "value": 0.0054356,
+            "unit": "m"
+          },
+          "angle": {
+            "expr": "90 deg",
+            "value": 1.57079632679,
+            "unit": "rad"
+          }
+        },
+        "drillTip": {
+          "angle": {
+            "expr": "118 deg",
+            "value": 2.05948851735,
+            "unit": "rad"
+          }
+        },
+        "standard": {
+          "name": "ANSI Inch",
+          "type": "Bottoming Tapped Hole",
+          "size": "#8-32"
+        },
+        "ext": {
+          "sw": {
+            "name": "#8-32 Tapped Hole1",
+            "type": "HoleWzd",
+            "data": {
+              "Type": 47,
+              "Diameter": 0,
+              "CounterBoreDiameter": 0,
+              "CounterDrillDiameter": 0,
+              "CounterSinkDiameter": 0,
+              "MinorDiameter": 0,
+              "MajorDiameter": 0,
+              "HoleDiameter": 0,
+              "ThruHoleDiameter": 0,
+              "TapDrillDiameter": 0.0034544,
+              "ThruTapDrillDiameter": 0,
+              "NearCounterSinkDiameter": 0.0054356,
+              "MidCounterSinkDiameter": 0,
+              "FarCounterSinkDiameter": 0,
+              "ThreadDiameter": 0.0041656,
+              "Depth": 0,
+              "CounterBoreDepth": 0,
+              "CounterDrillDepth": 0,
+              "HoleDepth": 0,
+              "ThruHoleDepth": 0,
+              "TapDrillDepth": 0.011938,
+              "ThruTapDrillDepth": 0,
+              "ThreadDepth": 0.009652,
+              "CounterDrillAngle": 0,
+              "CounterSinkAngle": 0,
+              "DrillAngle": 2.05948851735,
+              "NearCounterSinkAngle": 1.57079632679,
+              "MidCounterSinkAngle": 0,
+              "FarCounterSinkAngle": 0,
+              "ThreadAngle": 0,
+              "HeadClearance": 0,
+              "EndCondition": 0,
+              "Standard": "ANSI Inch",
+              "FastenerType": "Bottoming Tapped Hole",
+              "FastenerSize": "#8-32",
+              "HeadClearanceType": -1,
+              "CosmeticThreadType": 1,
+              "HoleFit": -1,
+              "OffsetDistance": 0,
+              "ThreadEndCondition": 0,
+              "TapType": -1,
+              "ReverseDirection": false,
+              "ThreadClass": "1B",
+              "FeatureScope": false,
+              "AutoSelect": false,
+              "Standard2": 0,
+              "FastenerType2": 26,
+              "AssemblyFeatureScope": false,
+              "AutoSelectComponents": true,
+              "PropagateFeatureToParts": false,
+              "NearSideCounterSink": true,
+              "FarSideCounterSink": false,
+              "Length": -1
+            },
+            "holeType": "swTapBlindCosmeticThreadCounterSinkTop"
+          }
+        },
+        "evidence": {
+          "bodyCount": 1,
+          "volume": 1.1075884385E-05,
+          "area": 0.0036418563424,
+          "centerOfMass": [-0.00591849542566, 0, 0],
+          "bbox": {
+            "min": [-0.02870835, -0.0127, -0.0127],
+            "max": [0.02870835, 0.0127, 0.0127]
+          },
+          "faceCount": 14,
+          "edgeCount": 13,
+          "vertexCount": 1,
+          "faceTypes": {
+            "cone": 6,
+            "cylinder": 4,
+            "plane": 4
+          }
+        }
+      },
+      {
+        "id": "f6",
+        "src": {
+          "name": "Sketch6",
+          "type": "ProfileFeature"
+        },
+        "op": "sketch",
+        "suppressed": false,
+        "fidelity": {
+          "rung": "pending"
+        },
+        "plane": {
+          "kind": "topo",
+          "entity": "face",
+          "createdBy": "f2",
+          "srcPersistId": "sw:OEoAAAMAAAD//v8AAAAAAP//AQALAG1vRmFjZVJlZl9jAQAAAAAAAAAFAAAAAAIAAAAAAAB9w5QlrUmyVH3DlCWtSbJUAAD//wEAFwBtb0Zyb21Ta3RFbnRTdXJmSWRSZXBfYwAA//8BAAYAbW9GUl9j//8BAA0AbW9FeHRPYmplY3RfY///AQARAG1vQ1N0cmluZ0hhbmRsZV9j//7/JUMAOgBcAFUAcwBlAHIAcwBcAGkAbQBpAGIAcgBcAEQAbwB3AG4AbABvAGEAZABzAFwATABDAEQATQAyAC4AUwBMAEQAUABSAFQACYD//v8FTABDAEQATQAyAAIAAA3lrmr//v8A//7/AP/+/wAACAAAAAAAAAAAAAAAAAAAAAD//v8HRABlAGYAYQB1AGwAdAAAAAAAAAAAAAAAAAAAAAAANwAAAP73rmoGAAAA//8BABMAbW9GaWxsZXRTdXJmSWRSZXBfYwAABYAIADoAAADe+K5qAQAAAAAA//8BABQAbW9XemRIb2xlU3VyZklkUmVwX2MAAAWACABRAAAAygevagIAAAAAAAAAAAAAAAAAAAAAADhKAAAAAAAAAAAAAA==",
+          "signature": {
+            "surface": "plane",
+            "normal": [1, 0, 0],
+            "offset": -0.02870835,
+            "centroid": [-0.02870835, 0, 0],
+            "area": 0.000166366759905
+          },
+          "probe": [-0.02870835, 0, 0]
+        },
+        "transform": [0, 0, -1, -0.02870835, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1],
+        "entities": [
+          {
+            "id": "p1",
+            "type": "point",
+            "construction": false,
+            "p": [0, 0]
+          }
+        ],
+        "constraints": [
+          {
+            "type": "coincident",
+            "args": ["ORIGIN", "p1"]
+          }
+        ],
+        "dimensions": [],
+        "ext": {
+          "sw": {
+            "name": "Sketch6",
+            "type": "ProfileFeature",
+            "constrainedStatus": "swFullyConstrained"
+          }
+        }
+      },
+      {
+        "id": "f7",
+        "src": {
+          "name": "5/16 (0.3135) Diameter Hole1",
+          "type": "HoleWzd"
+        },
+        "op": "hole",
+        "suppressed": false,
+        "fidelity": {
+          "rung": "pending"
+        },
+        "style": "countersink",
+        "positions": [
+          {
+            "kind": "topo",
+            "entity": "vertex",
+            "createdBy": "f6",
+            "role": "sketch:p1",
+            "signature": {
+              "point": [-0.02870835, 0, 0]
+            },
+            "probe": [-0.02870835, 0, 0]
+          }
+        ],
+        "startFace": {
+          "kind": "topo",
+          "entity": "face",
+          "createdBy": "f2",
+          "srcPersistId": "sw:OEoAAAMAAAD//v8AAAAAAP//AQALAG1vRmFjZVJlZl9jAQAAAAAAAAAFAAAAAAIAAAAAAAB9w5QlrUmyVH3DlCWtSbJUAAD//wEAFwBtb0Zyb21Ta3RFbnRTdXJmSWRSZXBfYwAA//8BAAYAbW9GUl9j//8BAA0AbW9FeHRPYmplY3RfY///AQARAG1vQ1N0cmluZ0hhbmRsZV9j//7/JUMAOgBcAFUAcwBlAHIAcwBcAGkAbQBpAGIAcgBcAEQAbwB3AG4AbABvAGEAZABzAFwATABDAEQATQAyAC4AUwBMAEQAUABSAFQACYD//v8FTABDAEQATQAyAAIAAA3lrmr//v8A//7/AP/+/wAACAAAAAAAAAAAAAAAAAAAAAD//v8HRABlAGYAYQB1AGwAdAAAAAAAAAAAAAAAAAAAAAAANwAAAP73rmoGAAAA//8BABMAbW9GaWxsZXRTdXJmSWRSZXBfYwAABYAIADoAAADe+K5qAQAAAAAA//8BABQAbW9XemRIb2xlU3VyZklkUmVwX2MAAAWACABRAAAAygevagIAAAAAAAAAAAAAAAAAAAAAADhKAAAAAAAAAAAAAA==",
+          "signature": {
+            "surface": "plane",
+            "normal": [1, 0, 0],
+            "offset": -0.02870835,
+            "centroid": [-0.02870835, 0, 0],
+            "area": 0.000166366759905
+          },
+          "probe": [-0.02870835, 0, 0]
+        },
+        "diameter": {
+          "expr": "0.3135 in",
+          "value": 0.0079629,
+          "unit": "m"
+        },
+        "end": {
+          "type": "blind",
+          "depth": {
+            "expr": "0.5 in",
+            "value": 0.0127,
+            "unit": "m"
+          }
+        },
+        "countersink": {
+          "diameter": {
+            "expr": "0.3635 in",
+            "value": 0.0092329,
+            "unit": "m"
+          },
+          "angle": {
+            "expr": "90 deg",
+            "value": 1.57079632679,
+            "unit": "rad"
+          }
+        },
+        "standard": {
+          "name": "ANSI Inch",
+          "type": "All Drill sizes",
+          "size": "5/16"
+        },
+        "ext": {
+          "sw": {
+            "name": "5/16 (0.3135) Diameter Hole1",
+            "type": "HoleWzd",
+            "data": {
+              "Type": 23,
+              "Diameter": 0,
+              "CounterBoreDiameter": 0,
+              "CounterDrillDiameter": 0,
+              "CounterSinkDiameter": 0,
+              "MinorDiameter": 0,
+              "MajorDiameter": 0,
+              "HoleDiameter": 0.0079629,
+              "ThruHoleDiameter": 0,
+              "TapDrillDiameter": 0,
+              "ThruTapDrillDiameter": 0,
+              "NearCounterSinkDiameter": 0.0092329,
+              "MidCounterSinkDiameter": 0,
+              "FarCounterSinkDiameter": 0,
+              "ThreadDiameter": 0,
+              "Depth": 0,
+              "CounterBoreDepth": 0,
+              "CounterDrillDepth": 0,
+              "HoleDepth": 0.0127,
+              "ThruHoleDepth": 0,
+              "TapDrillDepth": 0,
+              "ThruTapDrillDepth": 0,
+              "ThreadDepth": 0,
+              "CounterDrillAngle": 0,
+              "CounterSinkAngle": 0,
+              "DrillAngle": 3.14159265359,
+              "NearCounterSinkAngle": 1.57079632679,
+              "MidCounterSinkAngle": 0,
+              "FarCounterSinkAngle": 0,
+              "ThreadAngle": 0,
+              "HeadClearance": 0,
+              "EndCondition": 0,
+              "Standard": "ANSI Inch",
+              "FastenerType": "All Drill sizes",
+              "FastenerSize": "5/16",
+              "HeadClearanceType": 0,
+              "CosmeticThreadType": -1,
+              "HoleFit": 1,
+              "OffsetDistance": 0,
+              "ThreadEndCondition": -1,
+              "TapType": -1,
+              "ReverseDirection": false,
+              "ThreadClass": "1B",
+              "FeatureScope": false,
+              "AutoSelect": false,
+              "Standard2": 0,
+              "FastenerType2": 18,
+              "AssemblyFeatureScope": false,
+              "AutoSelectComponents": true,
+              "PropagateFeatureToParts": false,
+              "NearSideCounterSink": true,
+              "FarSideCounterSink": false,
+              "Length": -1
+            },
+            "holeType": "swHoleBlindCounterSinkTop"
+          }
+        },
+        "evidence": {
+          "bodyCount": 1,
+          "volume": 1.04381082166E-05,
+          "area": 0.0039507812633,
+          "centerOfMass": [-0.00491088308157, 0, 0],
+          "bbox": {
+            "min": [-0.02870835, -0.0127, -0.0127],
+            "max": [0.02870835, 0.0127, 0.0127]
+          },
+          "faceCount": 17,
+          "edgeCount": 16,
+          "vertexCount": 1,
+          "faceTypes": {
+            "cone": 7,
+            "cylinder": 5,
+            "plane": 5
+          }
+        }
+      },
+      {
+        "id": "f8",
+        "src": {
+          "name": "Sketch9",
+          "type": "ProfileFeature"
+        },
+        "op": "sketch",
+        "suppressed": false,
+        "fidelity": {
+          "rung": "pending"
+        },
+        "plane": {
+          "kind": "topo",
+          "entity": "face",
+          "createdBy": "f7",
+          "srcPersistId": "sw:OEoAAAMAAAD//v8AAAAAAP//AQALAG1vRmFjZVJlZl9jAQAAAAAAAAAFAAAAAAIAAAAAAAB9w5QlrUmyVH3DlCWtSbJUAAD//wEAFABtb1d6ZEhvbGVTdXJmSWRSZXBfYwAA//8BAAYAbW9GUl9j//8BAA0AbW9FeHRPYmplY3RfY///AQARAG1vQ1N0cmluZ0hhbmRsZV9j//7/JUMAOgBcAFUAcwBlAHIAcwBcAGkAbQBpAGIAcgBcAEQAbwB3AG4AbABvAGEAZABzAFwATABDAEQATQAyAC4AUwBMAEQAUABSAFQACYD//v8FTABDAEQATQAyAAIAAA3lrmr//v8A//7/AP/+/wAACAAAAAAAAAAAAAAAAAAAAAD//v8HRABlAGYAYQB1AGwAdAAAAAAAAAAAAAAAAAAAAAAAUQAAAMoHr2oEAAAAAAAAAAOAAAAFgAgAUQAAAMoHr2oDAAAAAAAAAAAAA4AAAAWACABhAAAAmgqvagIAAAAAAAAAAAAAAAAAAAAAADhKAAAAAAAAAAAAAA==",
+          "signature": {
+            "surface": "plane",
+            "normal": [1, 0, 0],
+            "offset": -0.01600835,
+            "centroid": [-0.01600835, 0, 0],
+            "area": 4.98003511375E-05
+          },
+          "probe": [-0.01600835, 0, 0]
+        },
+        "transform": [0, 0, -1, -0.01600835, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1],
+        "entities": [
+          {
+            "id": "p1",
+            "type": "point",
+            "construction": false,
+            "p": [0, 0]
+          }
+        ],
+        "constraints": [
+          {
+            "type": "coincident",
+            "args": ["ORIGIN", "p1"]
+          }
+        ],
+        "dimensions": [],
+        "ext": {
+          "sw": {
+            "name": "Sketch9",
+            "type": "ProfileFeature",
+            "constrainedStatus": "swFullyConstrained"
+          }
+        }
+      },
+      {
+        "id": "f9",
+        "src": {
+          "name": "#9 (0.196) Diameter Hole1",
+          "type": "HoleWzd"
+        },
+        "op": "hole",
+        "suppressed": false,
+        "fidelity": {
+          "rung": "pending",
+          "notes": "ends in a 118 deg drill point"
+        },
+        "style": "simple",
+        "positions": [
+          {
+            "kind": "topo",
+            "entity": "vertex",
+            "createdBy": "f8",
+            "role": "sketch:p1",
+            "signature": {
+              "point": [-0.01600835, 0, 0]
+            },
+            "probe": [-0.01600835, 0, 0]
+          }
+        ],
+        "startFace": {
+          "kind": "topo",
+          "entity": "face",
+          "createdBy": "f7",
+          "srcPersistId": "sw:OEoAAAMAAAD//v8AAAAAAP//AQALAG1vRmFjZVJlZl9jAQAAAAAAAAAFAAAAAAIAAAAAAAB9w5QlrUmyVH3DlCWtSbJUAAD//wEAFABtb1d6ZEhvbGVTdXJmSWRSZXBfYwAA//8BAAYAbW9GUl9j//8BAA0AbW9FeHRPYmplY3RfY///AQARAG1vQ1N0cmluZ0hhbmRsZV9j//7/JUMAOgBcAFUAcwBlAHIAcwBcAGkAbQBpAGIAcgBcAEQAbwB3AG4AbABvAGEAZABzAFwATABDAEQATQAyAC4AUwBMAEQAUABSAFQACYD//v8FTABDAEQATQAyAAIAAA3lrmr//v8A//7/AP/+/wAACAAAAAAAAAAAAAAAAAAAAAD//v8HRABlAGYAYQB1AGwAdAAAAAAAAAAAAAAAAAAAAAAAUQAAAMoHr2oEAAAAAAAAAAOAAAAFgAgAUQAAAMoHr2oDAAAAAAAAAAAAA4AAAAWACABhAAAAmgqvagIAAAAAAAAAAAAAAAAAAAAAADhKAAAAAAAAAAAAAA==",
+          "signature": {
+            "surface": "plane",
+            "normal": [1, 0, 0],
+            "offset": -0.01600835,
+            "centroid": [-0.01600835, 0, 0],
+            "area": 4.98003511375E-05
+          },
+          "probe": [-0.01600835, 0, 0]
+        },
+        "diameter": {
+          "expr": "0.196 in",
+          "value": 0.0049784,
+          "unit": "m"
+        },
+        "end": {
+          "type": "blind",
+          "depth": {
+            "expr": "0.124 in",
+            "value": 0.0031496,
+            "unit": "m"
+          }
+        },
+        "drillTip": {
+          "angle": {
+            "expr": "118 deg",
+            "value": 2.05948851735,
+            "unit": "rad"
+          }
+        },
+        "standard": {
+          "name": "ANSI Inch",
+          "type": "All Drill sizes",
+          "size": "#9"
+        },
+        "ext": {
+          "sw": {
+            "name": "#9 (0.196) Diameter Hole1",
+            "type": "HoleWzd",
+            "data": {
+              "Type": 22,
+              "Diameter": 0,
+              "CounterBoreDiameter": 0,
+              "CounterDrillDiameter": 0,
+              "CounterSinkDiameter": 0,
+              "MinorDiameter": 0,
+              "MajorDiameter": 0,
+              "HoleDiameter": 0.0049784,
+              "ThruHoleDiameter": 0,
+              "TapDrillDiameter": 0,
+              "ThruTapDrillDiameter": 0,
+              "NearCounterSinkDiameter": 0,
+              "MidCounterSinkDiameter": 0,
+              "FarCounterSinkDiameter": 0,
+              "ThreadDiameter": 0,
+              "Depth": 0,
+              "CounterBoreDepth": 0,
+              "CounterDrillDepth": 0,
+              "HoleDepth": 0.0031496,
+              "ThruHoleDepth": 0,
+              "TapDrillDepth": 0,
+              "ThruTapDrillDepth": 0,
+              "ThreadDepth": 0,
+              "CounterDrillAngle": 0,
+              "CounterSinkAngle": 0,
+              "DrillAngle": 2.05948851735,
+              "NearCounterSinkAngle": 0,
+              "MidCounterSinkAngle": 0,
+              "FarCounterSinkAngle": 0,
+              "ThreadAngle": 0,
+              "HeadClearance": 0,
+              "EndCondition": 0,
+              "Standard": "ANSI Inch",
+              "FastenerType": "All Drill sizes",
+              "FastenerSize": "#9",
+              "HeadClearanceType": -1,
+              "CosmeticThreadType": -1,
+              "HoleFit": 1,
+              "OffsetDistance": 0,
+              "ThreadEndCondition": -1,
+              "TapType": -1,
+              "ReverseDirection": false,
+              "ThreadClass": "",
+              "FeatureScope": false,
+              "AutoSelect": false,
+              "Standard2": 0,
+              "FastenerType2": 18,
+              "AssemblyFeatureScope": false,
+              "AutoSelectComponents": true,
+              "PropagateFeatureToParts": false,
+              "NearSideCounterSink": false,
+              "FarSideCounterSink": false,
+              "Length": -1
+            },
+            "holeType": "swHoleBlind"
+          }
+        },
+        "evidence": {
+          "bodyCount": 1,
+          "volume": 1.03670944366E-05,
+          "area": 0.00400328496906,
+          "centerOfMass": [-0.00484747776641, 0, 0],
+          "bbox": {
+            "min": [-0.02870835, -0.0127, -0.0127],
+            "max": [0.02870835, 0.0127, 0.0127]
+          },
+          "faceCount": 19,
+          "edgeCount": 18,
+          "vertexCount": 2,
+          "faceTypes": {
+            "cone": 8,
+            "cylinder": 6,
+            "plane": 5
+          }
+        }
+      }
+    ]
+  },
+  "behaviorEvidence": [
+    {
+      "target": "D1@Sketch2",
+      "expression": "2.48655 in",
+      "expectation": "measured in SOLIDWORKS: D1@Sketch2 2.2605 in -> 2.48655 in rebuilds with volume +2.68%",
+      "evidence": {
+        "bodyCount": 1,
+        "volume": 1.06448818101E-05,
+        "area": 0.00414485792396,
+        "centerOfMass": [-0.00683598305753, 0, 0],
+        "bbox": {
+          "min": [-0.031579185, -0.0127, -0.0127],
+          "max": [0.031579185, 0.0127, 0.0127]
+        },
+        "faceCount": 19,
+        "edgeCount": 18,
+        "vertexCount": 2,
+        "faceTypes": {
+          "cone": 8,
+          "cylinder": 6,
+          "plane": 5
+        }
+      }
+    },
+    {
+      "target": "D2@Sketch2",
+      "expression": "0.34375 in",
+      "expectation": "measured in SOLIDWORKS: D2@Sketch2 0.3125 in -> 0.34375 in rebuilds with volume +15.953%",
+      "evidence": {
+        "bodyCount": 1,
+        "volume": 1.20209422062E-05,
+        "area": 0.00429496589231,
+        "centerOfMass": [-0.00558312235364, 0, 0],
+        "bbox": {
+          "min": [-0.02870835, -0.01349375, -0.01349375],
+          "max": [0.02870835, 0.01349375, 0.01349375]
+        },
+        "faceCount": 19,
+        "edgeCount": 18,
+        "vertexCount": 2,
+        "faceTypes": {
+          "cone": 8,
+          "cylinder": 6,
+          "plane": 5
+        }
+      }
+    },
+    {
+      "target": "D3@Sketch2",
+      "expression": "0.9625 in",
+      "expectation": "measured in SOLIDWORKS: D3@Sketch2 0.875 in -> 0.9625 in rebuilds with volume +3.206%",
+      "evidence": {
+        "bodyCount": 1,
+        "volume": 1.06994730281E-05,
+        "area": 0.00405932681625,
+        "centerOfMass": [-0.00380204452453, 0, 0],
+        "bbox": {
+          "min": [-0.02870835, -0.0127, -0.0127],
+          "max": [0.02870835, 0.0127, 0.0127]
+        },
+        "faceCount": 19,
+        "edgeCount": 18,
+        "vertexCount": 2,
+        "faceTypes": {
+          "cone": 8,
+          "cylinder": 6,
+          "plane": 5
+        }
+      }
+    },
+    {
+      "target": "D4@Sketch2",
+      "expression": "0.20625 in",
+      "expectation": "measured in SOLIDWORKS: D4@Sketch2 0.1875 in -> 0.20625 in rebuilds with volume +4.18%",
+      "evidence": {
+        "bodyCount": 1,
+        "volume": 1.08004418849E-05,
+        "area": 0.0041119956971,
+        "centerOfMass": [-0.00468788693425, 0, 0],
+        "bbox": {
+          "min": [-0.02870835, -0.01317625, -0.01317625],
+          "max": [0.02870835, 0.01317625, 0.01317625]
+        },
+        "faceCount": 19,
+        "edgeCount": 18,
+        "vertexCount": 2,
+        "faceTypes": {
+          "cone": 8,
+          "cylinder": 6,
+          "plane": 5
+        }
+      }
+    },
+    {
+      "target": "D5@Sketch2",
+      "expression": "0.4862 in",
+      "expectation": "measured in SOLIDWORKS: D5@Sketch2 0.442 in -> 0.4862 in rebuilds with volume +4.963%",
+      "evidence": {
+        "bodyCount": 1,
+        "volume": 1.08816484791E-05,
+        "area": 0.00406518881373,
+        "centerOfMass": [-0.00436917766497, 0, 0],
+        "bbox": {
+          "min": [-0.02870835, -0.0127, -0.0127],
+          "max": [0.02870835, 0.0127, 0.0127]
+        },
+        "faceCount": 19,
+        "edgeCount": 18,
+        "vertexCount": 2,
+        "faceTypes": {
+          "cone": 8,
+          "cylinder": 6,
+          "plane": 5
+        }
+      }
+    },
+    {
+      "target": "D6@Sketch2",
+      "expression": "0.16995 in",
+      "expectation": "measured in SOLIDWORKS: D6@Sketch2 0.1545 in -> 0.16995 in rebuilds with volume +2.343%",
+      "evidence": {
+        "bodyCount": 1,
+        "volume": 1.06100400594E-05,
+        "area": 0.0040614216041,
+        "centerOfMass": [-0.00435409289026, 0, 0],
+        "bbox": {
+          "min": [-0.02870835, -0.0127, -0.0127],
+          "max": [0.02870835, 0.0127, 0.0127]
+        },
+        "faceCount": 19,
+        "edgeCount": 18,
+        "vertexCount": 2,
+        "faceTypes": {
+          "cone": 8,
+          "cylinder": 6,
+          "plane": 5
+        }
+      }
+    }
+  ]
+}

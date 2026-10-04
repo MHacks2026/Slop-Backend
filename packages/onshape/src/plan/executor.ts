@@ -261,6 +261,13 @@ export class Executor implements StepContext {
       const result: OpResult = { opId: op.id, onshapeFeatureId, featureStatus: status, notes, selections, ...(achievedRung ? { achievedRung } : {}) };
       throw Object.assign(new ExecutionError(op.id, `Onshape regeneration status ${status}`), { partial: result });
     }
+    if (status === "WARNING" && op.op === "createSketch") {
+      // A sketch WARNING means Onshape could not apply some constraint (over-defined or
+      // unsupported): geometry is there, intent may not be. Verified live: an unaccepted
+      // MIDPOINT leaves the sketch in WARNING. Say so rather than report rung exact.
+      notes.push("Onshape regenerated the sketch with a WARNING: at least one constraint or dimension was not applied; the sketch may be under-defined");
+      achievedRung = "approximated";
+    }
     return { opId: op.id, onshapeFeatureId, ...(status ? { featureStatus: status } : {}), notes, selections, ...(achievedRung ? { achievedRung } : {}) };
   }
 
@@ -557,11 +564,34 @@ export class Executor implements StepContext {
     const key = `${onshapeFeatureId}/${entity}`;
     let p = this.topology.get(key);
     if (!p) {
-      p = queryTopology(this.api, this.ref, onshapeFeatureId, entity);
+      p = queryTopology(this.api, this.ref, onshapeFeatureId, entity).then(dedupeCoincident);
       this.topology.set(key, p);
     }
     return p;
   }
+}
+
+/**
+ * Onshape lists each sketch curve twice under qCreatedBy(sketch, EDGE): the
+ * wire edge and the boundary edge of the region it closes, with identical
+ * geometry (verified live). Two entities that coincide in type, position and
+ * size are one selection as far as a reference is concerned; keep the first.
+ */
+export function dedupeCoincident(candidates: Candidate[], tol = 1e-9): Candidate[] {
+  const kept: Candidate[] = [];
+  for (const c of candidates) {
+    const anchor = c.midpoint ?? c.center ?? c.point ?? c.centroid ?? c.origin;
+    const twin = kept.find((k) => {
+      if (k.type !== c.type) return false;
+      const ka = k.midpoint ?? k.center ?? k.point ?? k.centroid ?? k.origin;
+      if (!anchor || !ka || dist(anchor, ka) > tol) return false;
+      if ((k.length ?? 0) !== (c.length ?? 0) && Math.abs((k.length ?? 0) - (c.length ?? 0)) > tol) return false;
+      if ((k.radius ?? 0) !== (c.radius ?? 0) && Math.abs((k.radius ?? 0) - (c.radius ?? 0)) > tol) return false;
+      return true;
+    });
+    if (!twin) kept.push(c);
+  }
+  return kept;
 }
 
 function matchesPredicate(c: Candidate, w: EntityPredicate, o: ResolveOptions): boolean {
@@ -576,7 +606,9 @@ function matchesPredicate(c: Candidate, w: EntityPredicate, o: ResolveOptions): 
   }
   if (w.radius !== undefined && (c.radius === undefined || Math.abs(c.radius - w.radius) > tol)) return false;
   if (w.near) {
-    const p = c.midpoint ?? c.centroid ?? c.center ?? c.point ?? c.origin;
+    // A circle's "midpoint" is a point on its circumference (verified live), so a rim is
+    // located by its centre; everything else by the point nearest its middle.
+    const p = c.type === "circle" || c.type === "ellipse" ? (c.center ?? c.midpoint) : (c.midpoint ?? c.centroid ?? c.center ?? c.point ?? c.origin);
     if (!p || dist(p, w.near) > Math.max(tol * 1000, 1e-3)) return false;
   }
   return true;

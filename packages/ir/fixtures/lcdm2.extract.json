@@ -1,0 +1,111 @@
+{
+  "tool": "slop-solidworks-extractor",
+  "toolVersion": "0.1.0",
+  "solidworks": {
+    "release": "2026",
+    "revision": "34.4.1"
+  },
+  "file": "C:\\Users\\imibr\\Downloads\\LCDM2.SLDPRT",
+  "configuration": "Default",
+  "units": {
+    "length": "in",
+    "angle": "deg"
+  },
+  "startedAt": "2026-10-04T03:40:30Z",
+  "seconds": 12.2,
+  "summary": {
+    "irFeatures": 9,
+    "unsupported": 0,
+    "errors": 0,
+    "warnings": 0,
+    "evidenceStates": 5,
+    "behaviorEvidence": 6
+  },
+  "features": [
+    {
+      "name": "Front Plane",
+      "type": "RefPlane",
+      "status": "datum",
+      "ir": "FRONT"
+    },
+    {
+      "name": "Top Plane",
+      "type": "RefPlane",
+      "status": "datum",
+      "ir": "TOP"
+    },
+    {
+      "name": "Right Plane",
+      "type": "RefPlane",
+      "status": "datum",
+      "ir": "RIGHT"
+    },
+    {
+      "name": "Sketch2",
+      "type": "ProfileFeature",
+      "status": "mapped",
+      "ir": "f1",
+      "op": "sketch"
+    },
+    {
+      "name": "Revolve1",
+      "type": "Revolution",
+      "status": "mapped",
+      "ir": "f2",
+      "op": "revolve"
+    },
+    {
+      "name": "Chamfer1",
+      "type": "Chamfer",
+      "status": "mapped",
+      "ir": "f3",
+      "op": "chamfer"
+    },
+    {
+      "name": "Sketch3",
+      "type": "ProfileFeature",
+      "status": "mapped",
+      "ir": "f4",
+      "op": "sketch"
+    },
+    {
+      "name": "#8-32 Tapped Hole1",
+      "type": "HoleWzd",
+      "status": "mapped",
+      "ir": "f5",
+      "op": "hole",
+      "notes": ["ends in a 118 deg drill point", "tapped hole: written as its tap drill; threads are not modelled"]
+    },
+    {
+      "name": "Sketch6",
+      "type": "ProfileFeature",
+      "status": "mapped",
+      "ir": "f6",
+      "op": "sketch"
+    },
+    {
+      "name": "5/16 (0.3135) Diameter Hole1",
+      "type": "HoleWzd",
+      "status": "mapped",
+      "ir": "f7",
+      "op": "hole"
+    },
+    {
+      "name": "Sketch9",
+      "type": "ProfileFeature",
+      "status": "mapped",
+      "ir": "f8",
+      "op": "sketch"
+    },
+    {
+      "name": "#9 (0.196) Diameter Hole1",
+      "type": "HoleWzd",
+      "status": "mapped",
+      "ir": "f9",
+      "op": "hole",
+      "notes": ["ends in a 118 deg drill point"]
+    }
+  ],
+  "ignored": ["Comments", "Favorites", "History", "Selection Sets", "Sensors", "Design Binder", "Annotations", "Surface Bodies", "Solid Bodies", "Lights and Cameras", "Markups", "Equations", "Material <not specified>", "Origin"],
+  "warnings": []
+}

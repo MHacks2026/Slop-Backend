@@ -1,5 +1,5 @@
-import { hashDocument, type Document, type FeatureOp, type Rung } from "@slop/ir";
-import { normalizeExpression, runBehaviorTests, type BehaviorCase, type BehaviorResult } from "./behavior.ts";
+import { hashDocument, type Document, type Evidence, type FeatureOp, type Rung } from "@slop/ir";
+import { measuredEvidence, normalizeExpression, runBehaviorTests, shifted, type BehaviorCase, type BehaviorResult } from "./behavior.ts";
 import type { OnshapeApi } from "./client/api.ts";
 import type { DocumentRef } from "./client/types.ts";
 import { queryBodyStats } from "./fs/topology.ts";
@@ -39,6 +39,10 @@ export interface BuildOptions {
    * dimension in Onshape, measure, restore (architecture doc §9). Default true.
    */
   behavior?: boolean;
+  /** Largest relative Level 1 error an approximated (rung 4) feature may carry as deviation. Default 1%. */
+  maxDeviation?: number;
+  /** How many planner-proposed perturbations without source evidence to run (they cost API calls). Default 3. */
+  maxUnverifiedBehavior?: number;
   log?: (line: string) => void;
   /** Structured progress, in order: the document, each feature as it finishes, each behaviour test. */
   onEvent?: (event: BuildEvent) => void;
@@ -64,6 +68,8 @@ export interface FeatureRecord {
   op: FeatureOp;
   status: "built" | "failed" | "skipped";
   rung: Rung;
+  /** For an approximated feature: the largest relative Level 1 error that was accepted as deviation. */
+  deviation?: number;
   onshapeFeatureId?: string;
   featureStatus?: string;
   notes: string[];
@@ -130,6 +136,9 @@ export async function buildDocument(ir: Document, api: OnshapeApi, options: Buil
   const records: FeatureRecord[] = [];
   const steps: PlanStep[] = [];
   let stoppedEarly = false;
+  // After an approximated feature (rung 4) the Onshape model carries a known offset, so later
+  // features are checked on the change they make, relative to these two baselines.
+  let baseline: { source: Evidence; onshape: Evidence } | undefined;
 
   for (const [index, f] of ir.partStudio.features.entries()) {
     const rec: FeatureRecord = {
@@ -138,7 +147,8 @@ export async function buildDocument(ir: Document, api: OnshapeApi, options: Buil
       op: f.op,
       status: "built",
       rung: "pending",
-      notes: [],
+      // What the extractor could not carry from the source (e.g. a tapped hole written as its tap drill) belongs in the report too.
+      notes: f.fidelity.notes ? [`source: ${f.fidelity.notes}`] : [],
       refs: [],
       checks: [],
       attempts: 0,
@@ -201,7 +211,7 @@ export async function buildDocument(ir: Document, api: OnshapeApi, options: Buil
       const last = execution.results.at(-1);
       rec.onshapeFeatureId = last?.onshapeFeatureId;
       rec.featureStatus = last?.featureStatus;
-      rec.notes = execution.results.flatMap((r) => r.notes);
+      rec.notes = [...(f.fidelity.notes ? [`source: ${f.fidelity.notes}`] : []), ...execution.results.flatMap((r) => r.notes)];
       rec.refs = execution.results.flatMap((r) => r.selections);
       // The planner's rung is a claim; the executor reports what it could realise. Keep the worse of the two.
       const claimed = worstRung(checked.ops.map((o) => o.rung));
@@ -212,10 +222,28 @@ export async function buildDocument(ir: Document, api: OnshapeApi, options: Buil
       rec.reasoning = checked.reasoning;
 
       let checks: Check[] = [];
+      let measured: Evidence | undefined;
       if (f.evidence && SOLID_OPS.has(f.op)) {
         const mass = await api.massProperties(ref);
         const stats = options.bodyStats === false ? undefined : await queryBodyStats(api, ref);
-        checks = level1Checks(f.evidence, mass, stats, options.tolerances ?? DEFAULT_TOLERANCES);
+        measured = measuredEvidence(f.evidence, mass, stats);
+        // Downstream of an approximation, compare the change this feature made, not the absolute.
+        const expected = baseline ? shifted(baseline.source, f.evidence, baseline.onshape) : f.evidence;
+        checks = level1Checks(expected, mass, stats, options.tolerances ?? DEFAULT_TOLERANCES);
+        if (baseline) rec.notes.push("checked as a change relative to the preceding approximated feature");
+        // Rung 4 (architecture doc §6): an approximation is allowed to deviate, provided the
+        // deviation is measured and reported. Its geometry checks become advisory, capped so an
+        // "approximation" that is simply wrong still fails.
+        if (rec.rung === "approximated") {
+          const cap = options.maxDeviation ?? 0.01;
+          let worst = 0;
+          for (const c of checks) {
+            if (c.pass || c.advisory || c.error === undefined || !(c.error <= cap)) continue;
+            c.advisory = true;
+            worst = Math.max(worst, c.error);
+          }
+          if (worst > 0) rec.deviation = worst;
+        }
         rec.checks = checks;
         for (const c of checks) log(`  ${c.pass ? "ok  " : c.advisory ? "warn" : "FAIL"} ${c.name}: expected ${c.expected}, got ${c.actual}`);
       }
@@ -235,6 +263,7 @@ export async function buildDocument(ir: Document, api: OnshapeApi, options: Buil
       const opIds = execution.results.map((r) => r.opId);
       executor.accept(f.id, opIds);
       accepted = { irFeature: f.id, ops: checked.ops, reasoning: checked.reasoning, attempts: n };
+      if (f.evidence && measured && (baseline || rec.rung === "approximated")) baseline = { source: f.evidence, onshape: measured };
       rec.attemptLog.push({ n, reasoning: checked.reasoning, errors: [], checks, summary: "accepted" });
       log(`${f.src.name}: ${f.op} -> ${rec.onshapeFeatureId ?? "?"} [${rec.featureStatus ?? "?"}] rung=${rec.rung} attempts=${n}`);
 
@@ -270,10 +299,14 @@ export async function buildDocument(ir: Document, api: OnshapeApi, options: Buil
   let behavior: BehaviorResult[] = [];
   if (!stoppedEarly && options.behavior !== false) {
     const nominal = [...ir.partStudio.features].reverse().find((f) => f.evidence)?.evidence;
-    const cases = behaviorCases(ir, behaviorTests);
+    const cases = behaviorCases(ir, behaviorTests, options.maxUnverifiedBehavior);
+    // With an approximated feature in the model, absolute measurements carry a known constant
+    // offset; compare how the model *changes* instead, which is what Level 3 is about.
+    const approximated = records.some((r) => r.status === "built" && r.rung === "approximated");
     behavior = await runBehaviorTests(api, ref, cases, nominal, {
       ...(options.tolerances ? { tolerances: options.tolerances } : {}),
       ...(options.bodyStats === false ? { bodyStats: false } : {}),
+      ...(approximated ? { mode: "delta" as const } : {}),
       log,
       onResult: (result, index) => options.onEvent?.({ type: "behavior", index, total: cases.length, result }),
     });
@@ -314,7 +347,7 @@ export async function buildDocument(ir: Document, api: OnshapeApi, options: Buil
  * (verified), then the planner's proposals not already covered (unverified:
  * they prove regeneration, not equivalence).
  */
-function behaviorCases(ir: Document, proposals: BehaviorTest[]): BehaviorCase[] {
+function behaviorCases(ir: Document, proposals: BehaviorTest[], maxUnverified = 3): BehaviorCase[] {
   const cases: BehaviorCase[] = (ir.behaviorEvidence ?? []).map((b) => ({
     target: b.target,
     expression: b.expression,
@@ -322,9 +355,15 @@ function behaviorCases(ir: Document, proposals: BehaviorTest[]): BehaviorCase[] 
     evidence: b.evidence,
   }));
   const seen = new Set(cases.map((c) => `${c.target}=${normalizeExpression(c.expression)}`));
+  const dimensionIds = new Set(ir.partStudio.features.flatMap((f) => (f.op === "sketch" ? f.dimensions.map((d) => d.id) : [])));
+  let unverified = 0;
   for (const t of proposals) {
     const key = `${t.target}=${normalizeExpression(t.expression)}`;
     if (seen.has(key)) continue;
+    // Proposals without source evidence only prove regeneration, and each costs API calls
+    // against the account's annual quota: run a few, and none for targets that are not a dimension.
+    if (!dimensionIds.has(t.target) || unverified >= maxUnverified) continue;
+    unverified++;
     seen.add(key);
     cases.push(t);
   }

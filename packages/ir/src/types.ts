@@ -340,6 +340,8 @@ export interface HoleFeature extends FeatureBase {
   end: EndCondition;
   counterbore?: { diameter: Quantity; depth: Quantity };
   countersink?: { diameter: Quantity; angle: Quantity };
+  /** A blind hole that ends in a drill point: the included tip angle (118 deg for a standard drill). Absent for flat bottoms and through holes. */
+  drillTip?: { angle: Quantity };
   /** Hole Wizard standard metadata, kept for mapping to Onshape hole tables. */
   standard?: { name: string; type?: string; size?: string };
 }

@@ -25,7 +25,7 @@ export const EXAMPLE_INDEX: ExampleIndexEntry[] = [
   { sourceOp: "mirror", rung: "exact", notes: "Feature mirror: seeds as a features selection, plane as datum/irRef. Unverified live." },
   { sourceOp: "linearPattern", rung: "exact", notes: "Feature pattern in one or two directions (sketch line, edge or planar face as direction). Skipped instances are not mapped. Unverified live." },
   { sourceOp: "circularPattern", rung: "exact", notes: "Feature pattern about an axis (cylindrical face, edge or sketch line). Skipped instances are not mapped. Unverified live." },
-  { sourceOp: "hole", rung: "exact", notes: "Composite (rung 2): sketch of circles on the start face, each centre coincident to its position vertex, plus a cut extrude with the hole's end condition; counterbore adds a second sketch and blind cut. Countersink not mapped." },
+  { sourceOp: "hole", rung: "exact", notes: "Composite (rung 2): sketch of circles on the start face, each centre coincident to its position vertex, plus a cut extrude with the hole's end condition; counterbore adds a second sketch and blind cut; countersink adds a chamfer on the rim (equal offsets at 90 deg, two offsets otherwise, face assignment unverified)." },
 ];
 
 export function exampleLibraryPrompt(): string {
