@@ -67,3 +67,4 @@ export const queryList = (parameterId: string, queries: BTQuery[]): BTParameterQ
 });
 export const idQuery = (deterministicIds: string[]): BTQuery => ({ btType: "BTMIndividualQuery-138", deterministicIds });
 export const sketchRegionQuery = (featureId: string): BTQuery => ({ btType: "BTMIndividualSketchRegionQuery-140", featureId });
+export const featureQuery = (featureId: string): BTQuery => ({ btType: "BTMFeatureQueryWithOccurrence-157", featureId });

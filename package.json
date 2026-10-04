@@ -5,19 +5,22 @@
     "packages/*"
   ],
   "scripts": {
-    "test": "npm test --workspaces --if-present",
+    "test": "npm run test:worker && npm test --workspaces --if-present",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy --minify",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings",
     "mock-worker": "tsx scripts/mock-worker.ts",
-    "typecheck:scripts": "tsc -p scripts"
+    "typecheck:scripts": "tsc -p scripts",
+    "test:worker": "node --import tsx --test \"src/**/*.test.ts\"",
+    "typecheck": "tsc --noEmit -p tsconfig.json && npm run typecheck --workspaces --if-present",
+    "runner": "npm start -w packages/runner --"
   },
   "dependencies": {
     "hono": "^4.13.12",
-    "jose": "^6.2.12"
+    "jose": "^6.2.12",
+    "@supabase/supabase-js": "^2.117.2"
   },
   "devDependencies": {
-    "@supabase/supabase-js": "^2.117.2",
     "@types/node": "^26.6.4",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",

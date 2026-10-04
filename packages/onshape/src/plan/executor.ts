@@ -1,12 +1,12 @@
-import type { DatumName, Document, EntityType, Feature, Parameter, Ref, TopoRef } from "@slop/ir";
+import type { Constraint, DatumName, Dimension, Document, EntityType, Feature, Parameter, Ref, Rung, SketchArg, TopoRef } from "@slop/ir";
 import type { OnshapeApi } from "../client/api.ts";
 import type { BTFeature, BTMFeature, BTParameter, BTQuery, DocumentRef } from "../client/types.ts";
-import { boolParam, enumParam, idQuery, quantity, queryList, sketchRegionQuery, stringParam } from "../expression.ts";
-import { frameOf, queryTopology, type Candidate } from "../fs/topology.ts";
-import { dist, dot, normalize, type PlaneFrame } from "../geometry.ts";
+import { boolParam, enumParam, featureQuery, idQuery, quantity, queryList, sketchRegionQuery, stringParam } from "../expression.ts";
+import { frameOf, querySketchPlane, queryTopology, type Candidate } from "../fs/topology.ts";
+import { applyPoint, dist, dot, normalize, sameFrame, type PlaneFrame } from "../geometry.ts";
 import { rankCandidates, type RankedCandidate, type ResolveOptions } from "../resolver.ts";
-import { composeSketch, SketchComposeError } from "../sketch/compose.ts";
-import type { EntityPredicate, Op, ParameterValue, Selection } from "./types.ts";
+import { composeSketch, externalArg, parseExternalArg, SketchComposeError } from "../sketch/compose.ts";
+import type { CreateSketchOp, EntityPredicate, Op, ParameterValue, Selection } from "./types.ts";
 
 /**
  * SolidWorks default planes -> Onshape default planes, chosen so the part
@@ -16,6 +16,13 @@ import type { EntityPredicate, Op, ParameterValue, Selection } from "./types.ts"
  * ASSUMPTION to verify in Phase 0 (open question 2).
  */
 export const DATUM_REMAP: Record<Exclude<DatumName, "ORIGIN">, string> = { FRONT: "Top", TOP: "Front", RIGHT: "Right" };
+
+/** The IR's reference to one entity of an earlier sketch (revolve axis, pattern direction). Not part of the IR `Ref` union. */
+export interface SketchEntityRef {
+  kind: "sketch-entity";
+  sketch: string;
+  entity: string;
+}
 
 /** A selection that resolved to more than one plausible entity: the translator must choose. */
 export class AmbiguousSelectionError extends Error {
@@ -57,6 +64,12 @@ export interface OpResult {
   featureStatus?: string;
   notes: string[];
   selections: SelectionRecord[];
+  /**
+   * Fidelity the executor could actually realise, when lower than the op
+   * claimed (e.g. a sketch whose model-referencing dimensions were skipped).
+   * The planner's own rung is a claim; this is the measurement.
+   */
+  achievedRung?: Rung;
 }
 
 export interface StepExecution {
@@ -159,6 +172,7 @@ export class Executor implements StepContext {
     if (this.onshapeIds.has(op.id)) throw new ExecutionError(op.id, `plan op id "${op.id}" already used`);
     const selections: SelectionRecord[] = [];
     const notes: string[] = [];
+    let achievedRung: Rung | undefined;
     let feature: BTFeature;
 
     switch (op.op) {
@@ -175,17 +189,21 @@ export class Executor implements StepContext {
         if (!frame) throw new ExecutionError(op.id, "sketch plane resolved without a frame");
         const irSketch = op.irSketch ? this.irById.get(op.irSketch) : undefined;
         if (op.irSketch && (!irSketch || irSketch.op !== "sketch")) throw new ExecutionError(op.id, `irSketch "${op.irSketch}" is not an IR sketch`);
-        const needsOrigin = [...op.constraints, ...op.dimensions].some((c) => c.args.includes("ORIGIN"));
+        // Model-geometry args (locating dimensions to edges, on-edge relations) are
+        // resolved to deterministic ids here so the sketch references them live.
+        const resolvedArgs = await this.resolveSketchArgs(op);
+        selections.push(...resolvedArgs.records);
+        const needsOrigin = [...resolvedArgs.constraints, ...resolvedArgs.dimensions].some((c) => c.args.includes("ORIGIN"));
         let composed;
         try {
           composed = composeSketch({
             name: op.name,
             planeIds: plane.record.deterministicIds,
             frame,
-            ...(irSketch && irSketch.op === "sketch" ? { sourceTransform: irSketch.transform } : {}),
+            ...(op.transform ? { sourceTransform: op.transform } : irSketch && irSketch.op === "sketch" ? { sourceTransform: irSketch.transform } : {}),
             entities: op.entities,
-            constraints: op.constraints,
-            dimensions: op.dimensions,
+            constraints: resolvedArgs.constraints,
+            dimensions: resolvedArgs.dimensions,
             ...(needsOrigin ? { originId: await this.originId() } : {}),
             parameters: this.parameters,
             idPrefix: op.id,
@@ -197,6 +215,7 @@ export class Executor implements StepContext {
         notes.push(...composed.notes);
         feature = composed.feature;
         this.frames.set(op.id, frame);
+        if (composed.rung !== "exact") achievedRung = composed.rung;
         break;
       }
 
@@ -225,12 +244,31 @@ export class Executor implements StepContext {
     this.topology.clear();
 
     const status = res.featureState?.featureStatus;
+    if (op.op === "createSketch" && (!status || status === "OK" || status === "WARNING")) {
+      // Open question 2 (doc §17): confirm Onshape's sketch frame is the one the coordinates were written in.
+      const assumed = this.frames.get(op.id)!;
+      const actual = await querySketchPlane(this.api, this.ref, onshapeFeatureId);
+      if (actual && !sameFrame(assumed, actual)) {
+        const result: OpResult = { opId: op.id, onshapeFeatureId, featureStatus: status ?? "OK", notes, selections };
+        throw Object.assign(
+          new ExecutionError(op.id, `sketch frame mismatch: coordinates were written for origin ${fmt(assumed.origin)} x ${fmt(assumed.x)}, Onshape used origin ${fmt(actual.origin)} x ${fmt(actual.x)}`),
+          { partial: result },
+        );
+      }
+    }
     if (status && status !== "OK" && status !== "WARNING") {
       // Leave the id registered so undo() can delete it.
-      const result: OpResult = { opId: op.id, onshapeFeatureId, featureStatus: status, notes, selections };
+      const result: OpResult = { opId: op.id, onshapeFeatureId, featureStatus: status, notes, selections, ...(achievedRung ? { achievedRung } : {}) };
       throw Object.assign(new ExecutionError(op.id, `Onshape regeneration status ${status}`), { partial: result });
     }
-    return { opId: op.id, onshapeFeatureId, ...(status ? { featureStatus: status } : {}), notes, selections };
+    if (status === "WARNING" && op.op === "createSketch") {
+      // A sketch WARNING means Onshape could not apply some constraint (over-defined or
+      // unsupported): geometry is there, intent may not be. Verified live: an unaccepted
+      // MIDPOINT leaves the sketch in WARNING. Say so rather than report rung exact.
+      notes.push("Onshape regenerated the sketch with a WARNING: at least one constraint or dimension was not applied; the sketch may be under-defined");
+      achievedRung = "approximated";
+    }
+    return { opId: op.id, onshapeFeatureId, ...(status ? { featureStatus: status } : {}), notes, selections, ...(achievedRung ? { achievedRung } : {}) };
   }
 
   private async buildParameter(opId: string, p: ParameterValue): Promise<{ parameter: BTParameter; selections: SelectionRecord[] }> {
@@ -244,19 +282,66 @@ export class Executor implements StepContext {
     for (const sel of p.selections) {
       const r = await this.resolveSelection(opId, p.id, sel);
       selections.push(r.record);
-      queries.push(r.query);
+      queries.push(...(Array.isArray(r.query) ? r.query : [r.query]));
     }
     return { parameter: queryList(p.id, queries), selections };
   }
 
   // --- selections ------------------------------------------------------------
 
+  /**
+   * Replace every model-geometry argument of a sketch's constraints and
+   * dimensions with an "ext:<id>" argument the composer can write as an
+   * external query. IR Refs go through the resolver cascade (a tie surfaces
+   * as AmbiguousSelectionError, so the planner can pick); explicit
+   * "ext:<id>" picks from the planner are recorded as-is.
+   */
+  private async resolveSketchArgs(op: CreateSketchOp): Promise<{ constraints: Constraint[]; dimensions: Dimension[]; records: SelectionRecord[] }> {
+    const records: SelectionRecord[] = [];
+    const irFeature = op.irSketch ?? op.id;
+
+    const resolveArgs = async (args: SketchArg[], label: string, pathOf: (j: number) => string): Promise<SketchArg[]> => {
+      const out: SketchArg[] = [];
+      for (let j = 0; j < args.length; j++) {
+        const arg = args[j]!;
+        const explicit = parseExternalArg(arg);
+        if (explicit) {
+          records.push({ opId: op.id, parameterId: label, selection: { kind: "entities", ids: explicit }, deterministicIds: explicit, resolver: "explicit", confidence: 1 });
+          out.push(arg);
+          continue;
+        }
+        if (typeof arg === "string") {
+          out.push(arg);
+          continue;
+        }
+        if (arg.kind === "feature-output" && arg.role === "region") throw new ExecutionError(op.id, `${label}: a sketch region cannot be a constraint or dimension argument`);
+        const sel: Selection = { kind: "irRef", irFeature, path: pathOf(j) };
+        const r = await this.resolveIrRef(op.id, label, sel, arg, arg.kind === "topo" ? arg.entity : undefined);
+        records.push(r.record);
+        out.push(externalArg(r.record.deterministicIds));
+      }
+      return out;
+    };
+
+    const constraints: Constraint[] = [];
+    for (let i = 0; i < op.constraints.length; i++) {
+      const c = op.constraints[i]!;
+      constraints.push({ ...c, args: await resolveArgs(c.args, `constraint[${i}]`, (j) => `constraints[${i}].args[${j}]`) });
+    }
+    const dimensions: Dimension[] = [];
+    for (let i = 0; i < op.dimensions.length; i++) {
+      const d = op.dimensions[i]!;
+      dimensions.push({ ...d, args: await resolveArgs(d.args, d.id, (j) => `dimensions[${i}].args[${j}]`) });
+    }
+    return { constraints, dimensions, records };
+  }
+
   private async resolveSelection(
     opId: string,
     parameterId: string,
     sel: Selection,
     expectEntity?: EntityType,
-  ): Promise<{ query: BTQuery; record: SelectionRecord; candidate?: Candidate; frame?: PlaneFrame }> {
+  ): Promise<{ query: BTQuery | BTQuery[]; record: SelectionRecord; candidate?: Candidate; frame?: PlaneFrame }> {
     const rec = (ids: string[], resolver: SelectionRecord["resolver"], extra: Partial<SelectionRecord> = {}): SelectionRecord => ({
       opId,
       parameterId,
@@ -295,9 +380,101 @@ export class Executor implements StepContext {
       }
       case "irRef": {
         const ref = this.irRefAt(opId, sel.irFeature, sel.path);
+        if (ref.kind === "sketch-entity") return this.resolveSketchEntity(opId, parameterId, sel, ref.sketch, ref.entity, expectEntity);
         return this.resolveIrRef(opId, parameterId, sel, ref, expectEntity);
       }
+      case "features": {
+        const ids = sel.features.map((f) => {
+          const id = this.onshapeIds.get(f);
+          if (!id) throw new ExecutionError(opId, `feature "${f}" has not been built in this plan`);
+          return id;
+        });
+        return { query: ids.map(featureQuery), record: rec(ids, "feature") };
+      }
+      case "sketchEntity":
+        return this.resolveSketchEntity(opId, parameterId, sel, sel.sketch, sel.entity, expectEntity);
     }
+  }
+
+  /**
+   * A sketch entity as a model selection. Onshape gives sketch curves and
+   * points deterministic ids like any edge or vertex; the one that corresponds
+   * to the IR entity is found by projecting the IR geometry into model space
+   * through the sketch transform and probing the entities the sketch created.
+   * UNVERIFIED: that `qCreatedBy(sketch, VERTEX)` lists sketch points.
+   */
+  private async resolveSketchEntity(opId: string, parameterId: string, sel: Selection, sketchId: string, entityId: string, expectEntity?: EntityType) {
+    // `sketchId` may be a plan op id or an IR feature id (the two coincide in the rules path).
+    let sketchOpId = sketchId;
+    let onshapeSketch = this.onshapeIds.get(sketchOpId);
+    if (!onshapeSketch) {
+      const ops = this.opsFor(sketchId);
+      sketchOpId = ops.find((o) => this.frames.has(o)) ?? ops[0] ?? sketchId;
+      onshapeSketch = this.onshapeIds.get(sketchOpId);
+    }
+    if (!onshapeSketch) throw new ExecutionError(opId, `sketch "${sketchId}" has not been built in this plan`);
+    const irSketch = this.irById.get(sketchId) ?? this.ir.partStudio.features.find((f) => this.opsFor(f.id).includes(sketchOpId));
+    if (!irSketch || irSketch.op !== "sketch") throw new ExecutionError(opId, `"${sketchId}" is not an IR sketch, so entity "${entityId}" has no geometry to match`);
+    const entity = irSketch.entities.find((e) => e.id === entityId);
+    if (!entity) throw new ExecutionError(opId, `sketch "${irSketch.id}" has no entity "${entityId}"`);
+
+    const toModel = (p: readonly [number, number]) => applyPoint(irSketch.transform, [p[0], p[1], 0]);
+    let probe;
+    let entityType: EntityType;
+    let wantType: string | undefined;
+    switch (entity.type) {
+      case "point":
+        probe = toModel(entity.p);
+        entityType = "vertex";
+        break;
+      case "line":
+        probe = toModel([(entity.p0[0] + entity.p1[0]) / 2, (entity.p0[1] + entity.p1[1]) / 2]);
+        entityType = "edge";
+        wantType = "line";
+        break;
+      case "circle":
+        probe = toModel(entity.center);
+        entityType = "edge";
+        wantType = "circle";
+        break;
+      case "arc": {
+        // Arc midpoint: rotate p0 about the centre by half the sweep.
+        const [cx, cy] = entity.center;
+        const a0 = Math.atan2(entity.p0[1] - cy, entity.p0[0] - cx);
+        let a1 = Math.atan2(entity.p1[1] - cy, entity.p1[0] - cx);
+        if (entity.ccw && a1 <= a0) a1 += 2 * Math.PI;
+        if (!entity.ccw && a1 >= a0) a1 -= 2 * Math.PI;
+        const r = Math.hypot(entity.p0[0] - cx, entity.p0[1] - cy);
+        const am = (a0 + a1) / 2;
+        probe = toModel([cx + r * Math.cos(am), cy + r * Math.sin(am)]);
+        entityType = "edge";
+        wantType = "circle";
+        break;
+      }
+      default:
+        throw new ExecutionError(opId, `sketch entity type "${entity.type}" cannot be selected yet`);
+    }
+    if (expectEntity && expectEntity !== entityType) throw new ExecutionError(opId, `expected a ${expectEntity}, sketch entity "${entityId}" is a ${entityType}`);
+
+    const candidates = (await this.query(onshapeSketch, entityType)).filter((c) => !wantType || c.type === wantType);
+    const tol = (this.resolverOptions.tol ?? 1e-6) * 10;
+    const scored = candidates
+      .map((c) => {
+        const p = entityType === "vertex" ? c.point : wantType === "circle" ? c.center : c.midpoint;
+        return { candidate: c, d: p ? dist(p, probe) : Infinity };
+      })
+      .sort((a, b) => a.d - b.d);
+    const best = scored[0];
+    if (!best || best.d > tol) throw new ExecutionError(opId, `no ${entityType} of sketch ${irSketch.id} matches entity "${entityId}" (${candidates.length} candidates, nearest ${best ? best.d.toExponential(2) : "none"} m away)`);
+    const second = scored[1];
+    if (second && second.d <= tol) {
+      throw new AmbiguousSelectionError(opId, sel, scored.filter((s) => s.d <= tol).map((s) => ({ candidate: s.candidate, score: 1 / (1 + (s.d / tol) ** 2), resolver: "probe" as const })));
+    }
+    return {
+      query: idQuery([best.candidate.id]),
+      record: { opId, parameterId, selection: sel, deterministicIds: [best.candidate.id], resolver: "probe" as const, confidence: 1 / (1 + (best.d / tol) ** 2), candidates: candidates.length },
+      candidate: best.candidate,
+    };
   }
 
   private async resolveIrRef(opId: string, parameterId: string, sel: Selection, ref: Ref, expectEntity?: EntityType) {
@@ -351,7 +528,7 @@ export class Executor implements StepContext {
     return lists.flat();
   }
 
-  private irRefAt(opId: string, irFeatureId: string, path: string): Ref {
+  private irRefAt(opId: string, irFeatureId: string, path: string): Ref | SketchEntityRef {
     const f = this.irById.get(irFeatureId);
     if (!f) throw new ExecutionError(opId, `unknown IR feature "${irFeatureId}"`);
     let node: unknown = f;
@@ -360,7 +537,7 @@ export class Executor implements StepContext {
       node = (node as Record<string, unknown>)[part];
     }
     if (!node || typeof node !== "object" || !("kind" in node)) throw new ExecutionError(opId, `"${irFeatureId}.${path}" is not an IR Ref`);
-    return node as Ref;
+    return node as Ref | SketchEntityRef;
   }
 
   // --- datums and topology ---------------------------------------------------
@@ -387,11 +564,34 @@ export class Executor implements StepContext {
     const key = `${onshapeFeatureId}/${entity}`;
     let p = this.topology.get(key);
     if (!p) {
-      p = queryTopology(this.api, this.ref, onshapeFeatureId, entity);
+      p = queryTopology(this.api, this.ref, onshapeFeatureId, entity).then(dedupeCoincident);
       this.topology.set(key, p);
     }
     return p;
   }
+}
+
+/**
+ * Onshape lists each sketch curve twice under qCreatedBy(sketch, EDGE): the
+ * wire edge and the boundary edge of the region it closes, with identical
+ * geometry (verified live). Two entities that coincide in type, position and
+ * size are one selection as far as a reference is concerned; keep the first.
+ */
+export function dedupeCoincident(candidates: Candidate[], tol = 1e-9): Candidate[] {
+  const kept: Candidate[] = [];
+  for (const c of candidates) {
+    const anchor = c.midpoint ?? c.center ?? c.point ?? c.centroid ?? c.origin;
+    const twin = kept.find((k) => {
+      if (k.type !== c.type) return false;
+      const ka = k.midpoint ?? k.center ?? k.point ?? k.centroid ?? k.origin;
+      if (!anchor || !ka || dist(anchor, ka) > tol) return false;
+      if ((k.length ?? 0) !== (c.length ?? 0) && Math.abs((k.length ?? 0) - (c.length ?? 0)) > tol) return false;
+      if ((k.radius ?? 0) !== (c.radius ?? 0) && Math.abs((k.radius ?? 0) - (c.radius ?? 0)) > tol) return false;
+      return true;
+    });
+    if (!twin) kept.push(c);
+  }
+  return kept;
 }
 
 function matchesPredicate(c: Candidate, w: EntityPredicate, o: ResolveOptions): boolean {
@@ -406,8 +606,12 @@ function matchesPredicate(c: Candidate, w: EntityPredicate, o: ResolveOptions): 
   }
   if (w.radius !== undefined && (c.radius === undefined || Math.abs(c.radius - w.radius) > tol)) return false;
   if (w.near) {
-    const p = c.midpoint ?? c.centroid ?? c.center ?? c.point ?? c.origin;
+    // A circle's "midpoint" is a point on its circumference (verified live), so a rim is
+    // located by its centre; everything else by the point nearest its middle.
+    const p = c.type === "circle" || c.type === "ellipse" ? (c.center ?? c.midpoint) : (c.midpoint ?? c.centroid ?? c.center ?? c.point ?? c.origin);
     if (!p || dist(p, w.near) > Math.max(tol * 1000, 1e-3)) return false;
   }
   return true;
 }
+
+const fmt = (v: readonly number[]): string => `(${v.map((x) => +x.toFixed(6)).join(", ")})`;

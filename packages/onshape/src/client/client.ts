@@ -79,7 +79,7 @@ export class OnshapeClient implements OnshapeApi {
 
   async evaluateFeatureScript(ref: DocumentRef, script: string): Promise<unknown> {
     const res = await this.http.request<{ result?: unknown; notices?: unknown[] }>("POST", `${this.psPath(ref)}/featurescript`, {
-      body: { script, queries: [] },
+      body: { script, queries: {} },
     });
     const errors = (res.notices ?? []).filter((n) => isRecord(n) && n.level === "ERROR");
     if (errors.length) throw new Error(`FeatureScript errors: ${JSON.stringify(errors).slice(0, 1000)}`);
@@ -91,6 +91,21 @@ export class OnshapeClient implements OnshapeApi {
       query: { massAsGroup: true },
     });
     return res.bodies["-all-"] ?? Object.values(res.bodies)[0];
+  }
+
+  /** `POST .../features/featureid/{fid}` with the full feature definition (architecture doc §4, "Update or delete a feature"). */
+  async updateFeature(ref: DocumentRef, featureId: string, feature: BTFeature): Promise<AddFeatureResponse> {
+    const versions = this.versions.get(key(ref)) ?? (await this.getFeatures(ref), this.versions.get(key(ref))!);
+    const body: BTFeatureDefinitionCall = {
+      btType: "BTFeatureDefinitionCall-1406",
+      feature: { ...feature, featureId },
+      serializationVersion: versions.serializationVersion,
+      sourceMicroversion: versions.sourceMicroversion,
+      ...(versions.libraryVersion !== undefined ? { libraryVersion: versions.libraryVersion } : {}),
+    };
+    const res = await this.http.request<AddFeatureResponse>("POST", `${this.psPath(ref)}/features/featureid/${encodeURIComponent(featureId)}`, { body });
+    this.remember(ref, res);
+    return res;
   }
 
   async deleteFeature(ref: DocumentRef, featureId: string): Promise<void> {

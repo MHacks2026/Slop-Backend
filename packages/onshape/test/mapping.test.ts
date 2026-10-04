@@ -108,3 +108,39 @@ test("FeatureScript values decode to plain JS", () => {
 
 const _ops: Feature["op"][] = ["sketch", "extrude", "fillet"];
 void _ops;
+
+test("arcs: counter-clockwise as-is, clockwise re-emitted from the far end with point ids swapped, mirrored frames flip the sweep", () => {
+  const arcSketch = (ccw: boolean, frame: PlaneFrame = TOP) =>
+    composeSketch({
+      name: "Arcs",
+      planeIds: ["JCC"],
+      frame,
+      sourceTransform: square.transform,
+      entities: [{ id: "a1", type: "arc", construction: false, center: [0, 0], p0: [0.01, 0], p1: [0, 0.01], ccw }],
+      constraints: [],
+      dimensions: [],
+      idPrefix: "s",
+    }).feature.entities[0]!;
+
+  const ccw = arcSketch(true);
+  assert.equal(ccw.btType, "BTMSketchCurveSegment-155");
+  if (ccw.btType === "BTMSketchCurveSegment-155" && ccw.geometry.btType === "BTCurveGeometryCircle-115") {
+    assert.ok(Math.abs(ccw.startParam) < 1e-12 && Math.abs(ccw.endParam - Math.PI / 2) < 1e-12);
+    assert.deepEqual([ccw.startPointId, ccw.endPointId, ccw.centerId], ["a1.start", "a1.end", "a1.center"]);
+    assert.equal(ccw.geometry.clockwise, false);
+  }
+
+  // Clockwise from (10,0) to (0,10) is the three-quarter arc the other way round: emitted ccw from (0,10) back to (10,0).
+  const cw = arcSketch(false);
+  if (cw.btType === "BTMSketchCurveSegment-155") {
+    assert.ok(Math.abs(cw.startParam - Math.PI / 2) < 1e-12 && Math.abs(cw.endParam - 2 * Math.PI) < 1e-12);
+    assert.deepEqual([cw.startPointId, cw.endPointId], ["a1.end", "a1.start"]);
+  }
+
+  // A plane whose Onshape normal points the other way mirrors the sketch, so the same source arc sweeps clockwise locally.
+  const flipped: PlaneFrame = { origin: [0, 0, 0], normal: [0, 0, -1], x: [1, 0, 0] };
+  const mirrored = arcSketch(true, flipped);
+  if (mirrored.btType === "BTMSketchCurveSegment-155") {
+    assert.deepEqual([mirrored.startPointId, mirrored.endPointId], ["a1.end", "a1.start"]);
+  }
+});

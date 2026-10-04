@@ -5,7 +5,7 @@ import type { BehaviorTest, PlanStep } from "../plan/types.ts";
 import { validateStepProposal } from "../plan/validate.ts";
 import type { Feedback, LlmUsage, Planner, StepProposal, StepRequest } from "./types.ts";
 
-export const CLAUDE_PROMPT_VERSION = "0.1.0";
+export const CLAUDE_PROMPT_VERSION = "0.1.1";
 
 export interface ClaudeConfig {
   apiKey: string;
@@ -30,6 +30,13 @@ Selections:
 - {kind:"irRef", irFeature:"f3", path:"plane"}  — resolver cascade; fails if candidates tie
 - {kind:"createdBy", feature:"<plan op id>", entity:"face"|"edge"|"vertex", where?:{type,normal,offset,radius,near}}
 - {kind:"entities", ids:["..."]}  — explicit pick after a tie or from list_topology
+- {kind:"sketchEntity", sketch:"<plan op id>", entity:"l1"}  — a sketch line/arc/point as a selection (revolve axis, pattern direction, hole centre)
+- {kind:"features", features:["<plan op id>", ...]}  — whole features as pattern or mirror seeds
+
+Sketch constraint and dimension args:
+- "l1", "l1.start", "c1.center", "ORIGIN"  — entities of this sketch
+- an IR Ref object (copy it from the IR)  — model geometry, resolved live; keeps the sketch at rung exact
+- "ext:<deterministicId>"  — explicit pick of a model entity after a tie, using an id from feedback
 
 Rules you must follow:
 - Never invent a dimension or expression. Use the IR values.
@@ -61,13 +68,15 @@ export class ClaudePlanner implements Planner {
   private totals: LlmUsage = { calls: 0, inputTokens: 0, outputTokens: 0, cacheReadTokens: 0 };
   private current: StepRequest | undefined;
   private history: Message[] = [];
+  /** The submit_step tool_use the last proposal came from; feedback must answer it as a tool_result. */
+  private lastSubmitId: string | undefined;
 
   constructor(private readonly cfg: ClaudeConfig) {
     if (!cfg.apiKey) {
       throw new Error("missing ANTHROPIC_API_KEY. Copy packages/onshape/.env.example to packages/onshape/.env and fill it in.");
     }
     this.fetchImpl = cfg.fetchImpl ?? fetch;
-    this.model = cfg.model ?? "claude-sonnet-4-6";
+    this.model = cfg.model ?? "claude-opus-5-5";
     this.url = `${(cfg.baseUrl ?? "https://api.anthropic.com").replace(/\/+$/, "")}/v1/messages`;
     this.provenance = { planner: "claude" as const, model: this.model, promptVersion: CLAUDE_PROMPT_VERSION };
   }
@@ -80,7 +89,15 @@ export class ClaudePlanner implements Planner {
 
   async reviseStep(req: StepRequest, _previous: StepProposal, feedback: Feedback): Promise<StepProposal | undefined> {
     this.current = req;
-    this.history.push({ role: "user", content: describeFeedback(feedback) });
+    // The previous proposal was a submit_step tool call; the Messages API requires the next
+    // user message to answer it with a tool_result (verified live: a plain message is a 400).
+    const text = describeFeedback(feedback);
+    if (this.lastSubmitId) {
+      this.history.push({ role: "user", content: [{ type: "tool_result", tool_use_id: this.lastSubmitId, content: text }] });
+      this.lastSubmitId = undefined;
+    } else {
+      this.history.push({ role: "user", content: text });
+    }
     return this.turn();
   }
 
@@ -91,6 +108,7 @@ export class ClaudePlanner implements Planner {
         role: "user",
         content:
           `The part is built. Propose up to 10 Level 3 behaviour tests: driving dimensions to perturb and what must still hold.\n` +
+          `Each test changes exactly ONE dimension: target is a single dimension id from the list below (never a list, never "all"), expression is its new value like "60 mm".\n` +
           `Driving dimensions:\n${drivingDimensions(ir).join("\n")}\n` +
           `Reply by calling submit_behavior_tests.`,
       },
@@ -151,6 +169,15 @@ export class ClaudePlanner implements Planner {
       this.history.push({ role: "assistant", content: data.content });
       const submitted = data.content.find((c) => c.type === "tool_use" && c.name === "submit_step");
       if (submitted && submitted.type === "tool_use") {
+        // Any other tool calls in the same turn are answered now; submit_step itself is answered
+        // by the executor's feedback (reviseStep) or never, if the step is accepted.
+        const others: Content[] = [];
+        for (const c of data.content) {
+          if (c.type !== "tool_use" || c.id === submitted.id) continue;
+          others.push({ type: "tool_result", tool_use_id: c.id, content: await this.runTool(c.name, c.input) });
+        }
+        if (others.length) this.history.push({ role: "user", content: others });
+        this.lastSubmitId = submitted.id;
         return validateStepProposal(submitted.input);
       }
       const results: Content[] = [];
@@ -264,7 +291,7 @@ function describeFeedback(fb: Feedback): string {
   if (fb.errors.length) lines.push(`Errors:\n${fb.errors.join("\n")}`);
   if (fb.ambiguous) {
     lines.push(
-      `Ambiguous selection on op ${fb.ambiguous.opId}. Candidates (pick with {kind:"entities", ids:[...]}):\n` +
+      `Ambiguous selection on op ${fb.ambiguous.opId} for ${JSON.stringify(fb.ambiguous.selection)}. Candidates (pick with {kind:"entities", ids:[...]}, or "ext:<id>" when the selection is a sketch constraint or dimension argument):\n` +
         JSON.stringify(fb.ambiguous.candidates.map((c) => ({ id: c.candidate.id, type: c.candidate.type, score: c.score, center: c.candidate.center, midpoint: c.candidate.midpoint }))),
     );
   }

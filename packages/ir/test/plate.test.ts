@@ -99,3 +99,35 @@ test("plate evidence matches analytic geometry (doc §16 step 5)", () => {
   const lostWall = 2 * Math.PI * R * r;
   rel(v5.area, v4.area - lostTop - lostWall + filletSurface, 1e-5);
 });
+
+test("behaviour evidence is evidence: outside the intent hash, and its targets must exist", () => {
+  assert.ok(plate.behaviorEvidence && plate.behaviorEvidence.length >= 5);
+
+  const without = clone(plate);
+  delete without.behaviorEvidence;
+  assert.equal(hashDocument(without).intent, hashDocument(plate).intent);
+
+  const bad = clone(plate);
+  bad.behaviorEvidence!.push({ target: "D9@Nowhere", expression: "1 mm", evidence: plate.behaviorEvidence![0]!.evidence });
+  const r = validateDocument(bad);
+  assert.equal(r.ok, false);
+  assert.match(r.structure[0]!.message, /unknown dimension or parameter "D9@Nowhere"/);
+});
+
+test("the first real extraction (LCDM2 from SOLIDWORKS 2026) validates and keeps its shape", () => {
+  const lcdm2 = JSON.parse(readFileSync(fileURLToPath(new URL("../fixtures/lcdm2.ir.json", import.meta.url)), "utf8")) as Document;
+  assert.deepEqual(validateDocument(lcdm2), { ok: true, schema: [], structure: [] });
+  assert.equal(lcdm2.source.cad, "solidworks");
+  assert.deepEqual(
+    lcdm2.partStudio.features.map((f) => f.op),
+    ["sketch", "revolve", "chamfer", "sketch", "hole", "sketch", "hole", "sketch", "hole"],
+  );
+  // Every solid feature carries Level 1 evidence; six driving dimensions carry Level 3 evidence.
+  for (const f of lcdm2.partStudio.features) if (f.op !== "sketch") assert.ok(f.evidence && f.evidence.volume > 0, `${f.src.name} has evidence`);
+  assert.equal(lcdm2.behaviorEvidence?.length, 6);
+  // Intent hash ignores the evidence layer, as for the plate.
+  const bare = clone(lcdm2);
+  delete bare.behaviorEvidence;
+  for (const f of bare.partStudio.features) delete f.evidence;
+  assert.equal(hashDocument(bare).intent, hashDocument(lcdm2).intent);
+});

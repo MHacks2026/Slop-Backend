@@ -36,9 +36,11 @@ export function level1Checks(evidence: Evidence, mass: MassPropertiesBody | unde
   if (mass) {
     checks.push(relative("volume", evidence.volume, mass.volume[0] ?? NaN, tol.volume));
     checks.push(relative("area", evidence.area, mass.periphery[0] ?? NaN, tol.area));
-    if (evidence.centerOfMass && mass.centroid.length >= 3) {
+    // massproperties reports centroid (0,0,0) when no material is assigned; fall back to the FeatureScript centroid.
+    const centroid = mass.hasMass && mass.centroid.length >= 3 ? (mass.centroid as number[]) : stats?.centroid;
+    if (evidence.centerOfMass && centroid) {
       const [ex, ey, ez] = evidence.centerOfMass;
-      const [ax, ay, az] = mass.centroid as [number, number, number];
+      const [ax, ay, az] = centroid as [number, number, number];
       const d = Math.hypot(ax - ex, ay - ey, az - ez);
       checks.push({ name: "centerOfMass", expected: fmtVec(evidence.centerOfMass), actual: fmtVec([ax, ay, az]), error: d, tolerance: tol.position, pass: d <= tol.position });
     }

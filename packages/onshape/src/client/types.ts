@@ -45,7 +45,15 @@ export interface BTSketchRegionQuery {
   featureId: string;
   deterministicIds?: string[];
 }
-export type BTQuery = BTIndividualQuery | BTSketchRegionQuery;
+/**
+ * A whole feature as a selection (pattern and mirror seeds).
+ * UNVERIFIED: btType and field names from Onshape feature-list readbacks of UI-built feature patterns.
+ */
+export interface BTFeatureQuery {
+  btType: "BTMFeatureQueryWithOccurrence-157";
+  featureId: string;
+}
+export type BTQuery = BTIndividualQuery | BTSketchRegionQuery | BTFeatureQuery;
 export interface BTParameterQueryList {
   btType: "BTMParameterQueryList-148";
   parameterId: string;
@@ -96,6 +104,8 @@ export interface BTSketchCurveSegment {
   endParam: number;
   startPointId: string;
   endPointId: string;
+  /** Arc segments only: id of the centre point. */
+  centerId?: string;
   isConstruction?: boolean;
 }
 export type BTSketchEntity = BTSketchPoint | BTSketchCurve | BTSketchCurveSegment;

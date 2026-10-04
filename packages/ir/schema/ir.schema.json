@@ -13,7 +13,12 @@
     "parameters": { "type": "array", "items": { "$ref": "#/$defs/Parameter" } },
     "partStudio": { "$ref": "#/$defs/PartStudio" },
     "configurations": { "type": "array", "maxItems": 0, "description": "Reserved." },
-    "assemblies": { "type": "array", "maxItems": 0, "description": "Reserved." }
+    "assemblies": { "type": "array", "maxItems": 0, "description": "Reserved." },
+    "behaviorEvidence": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/BehaviorEvidence" },
+      "description": "Evidence layer: source-side results of changing one driving dimension and rebuilding (Level 3). Not part of the intent hash."
+    }
   },
   "$defs": {
     "Id": { "type": "string", "minLength": 1, "pattern": "^[A-Za-z0-9_@.:-]+$" },
@@ -342,6 +347,7 @@
             "end": { "$ref": "#/$defs/EndCondition" },
             "counterbore": { "type": "object", "required": ["diameter", "depth"], "additionalProperties": false, "properties": { "diameter": { "$ref": "#/$defs/Quantity" }, "depth": { "$ref": "#/$defs/Quantity" } } },
             "countersink": { "type": "object", "required": ["diameter", "angle"], "additionalProperties": false, "properties": { "diameter": { "$ref": "#/$defs/Quantity" }, "angle": { "$ref": "#/$defs/Quantity" } } },
+            "drillTip": { "type": "object", "required": ["angle"], "additionalProperties": false, "properties": { "angle": { "$ref": "#/$defs/Quantity" } }, "description": "Blind hole ending in a drill point of this included angle; absent for flat bottoms and through holes." },
             "standard": { "type": "object", "required": ["name"], "additionalProperties": false, "properties": { "name": { "type": "string" }, "type": { "type": "string" }, "size": { "type": "string" } } }
           }
         },
@@ -414,6 +420,18 @@
         "id": { "$ref": "#/$defs/Id" },
         "name": { "type": "string" },
         "features": { "type": "array", "items": { "$ref": "#/$defs/Feature" } }
+      }
+    },
+
+    "BehaviorEvidence": {
+      "type": "object",
+      "required": ["target", "expression", "evidence"],
+      "additionalProperties": false,
+      "properties": {
+        "target": { "$ref": "#/$defs/Id", "description": "Dimension id (\"D1@Sketch1\") or parameter id that was changed." },
+        "expression": { "type": "string", "minLength": 1, "description": "New expression as typed in the source, e.g. \"55 mm\"." },
+        "evidence": { "$ref": "#/$defs/Evidence" },
+        "expectation": { "type": "string" }
       }
     },
 

@@ -1,0 +1,135 @@
+{
+  "irVersion": "0.1.0",
+  "source": {
+    "cad": "solidworks",
+    "version": "2024",
+    "fileName": "shaft.SLDPRT"
+  },
+  "parameters": [],
+  "partStudio": {
+    "id": "ps1",
+    "name": "shaft",
+    "features": [
+      {
+        "id": "f1",
+        "src": { "name": "Sketch1", "type": "ProfileFeature" },
+        "op": "sketch",
+        "suppressed": false,
+        "fidelity": { "rung": "pending" },
+        "plane": { "kind": "datum", "name": "FRONT" },
+        "transform": [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+        "entities": [
+          { "id": "l1", "type": "line", "construction": false, "p0": [0, 0], "p1": [0.02, 0] },
+          { "id": "l2", "type": "line", "construction": false, "p0": [0.02, 0], "p1": [0.02, 0.004] },
+          { "id": "a1", "type": "arc", "construction": false, "center": [0.019, 0.004], "p0": [0.02, 0.004], "p1": [0.019, 0.005], "ccw": true },
+          { "id": "l3", "type": "line", "construction": false, "p0": [0.019, 0.005], "p1": [0, 0.005] },
+          { "id": "l4", "type": "line", "construction": false, "p0": [0, 0.005], "p1": [0, 0] }
+        ],
+        "constraints": [
+          { "type": "horizontal", "args": ["l1"] },
+          { "type": "horizontal", "args": ["l3"] },
+          { "type": "vertical", "args": ["l2"] },
+          { "type": "vertical", "args": ["l4"] },
+          { "type": "coincident", "args": ["l1.start", "ORIGIN"] },
+          { "type": "coincident", "args": ["l1.end", "l2.start"] },
+          { "type": "coincident", "args": ["l2.end", "a1.start"] },
+          { "type": "coincident", "args": ["a1.end", "l3.start"] },
+          { "type": "coincident", "args": ["l3.end", "l4.start"] },
+          { "type": "coincident", "args": ["l4.end", "l1.start"] },
+          { "type": "tangent", "args": ["a1", "l2"] },
+          { "type": "tangent", "args": ["a1", "l3"] }
+        ],
+        "dimensions": [
+          { "id": "D1@Sketch1", "type": "distance", "args": ["l1"], "value": { "expr": "20 mm", "value": 0.02, "unit": "m" }, "driving": true },
+          { "id": "D2@Sketch1", "type": "distance", "args": ["l4"], "value": { "expr": "5 mm", "value": 0.005, "unit": "m" }, "driving": true },
+          { "id": "D3@Sketch1", "type": "radius", "args": ["a1"], "value": { "expr": "1 mm", "value": 0.001, "unit": "m" }, "driving": true }
+        ]
+      },
+      {
+        "id": "f2",
+        "src": { "name": "Revolve1", "type": "Revolution" },
+        "op": "revolve",
+        "suppressed": false,
+        "fidelity": { "rung": "pending" },
+        "mode": "new",
+        "profile": { "kind": "feature-output", "feature": "f1", "role": "region" },
+        "axis": { "kind": "sketch-entity", "sketch": "f1", "entity": "l1" },
+        "angle": { "expr": "360 deg", "value": 6.283185307179586, "unit": "rad" },
+        "flip": false
+      },
+      {
+        "id": "f3",
+        "src": { "name": "Chamfer1", "type": "Chamfer" },
+        "op": "chamfer",
+        "suppressed": false,
+        "fidelity": { "rung": "pending" },
+        "spec": { "type": "equalDistance", "distance": { "expr": "1 mm", "value": 0.001, "unit": "m" } },
+        "edges": [
+          {
+            "kind": "topo",
+            "entity": "edge",
+            "createdBy": "f2",
+            "role": "edge:capStart",
+            "srcPersistId": "sw:persist:1001",
+            "signature": { "curve": "circle", "radius": 0.005, "center": [0, 0, 0] }
+          }
+        ],
+        "tangentPropagation": true
+      },
+      {
+        "id": "f4",
+        "src": { "name": "Plane1", "type": "RefPlane" },
+        "op": "plane",
+        "suppressed": false,
+        "fidelity": { "rung": "pending" },
+        "definition": { "type": "offset", "base": { "kind": "datum", "name": "FRONT" }, "distance": { "expr": "10 mm", "value": 0.01, "unit": "m" }, "flip": false }
+      },
+      {
+        "id": "f5",
+        "src": { "name": "Sketch2", "type": "ProfileFeature" },
+        "op": "sketch",
+        "suppressed": false,
+        "fidelity": { "rung": "pending" },
+        "plane": { "kind": "feature-output", "feature": "f4", "role": "plane" },
+        "transform": [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0.01, 0, 0, 0, 1],
+        "entities": [{ "id": "c1", "type": "circle", "construction": false, "center": [0.01, 0], "r": 0.001 }],
+        "constraints": [],
+        "dimensions": [
+          { "id": "D1@Sketch2", "type": "diameter", "args": ["c1"], "value": { "expr": "2 mm", "value": 0.002, "unit": "m" }, "driving": true },
+          { "id": "D2@Sketch2", "type": "distance", "args": ["c1.center", "ORIGIN"], "value": { "expr": "10 mm", "value": 0.01, "unit": "m" }, "driving": true }
+        ]
+      },
+      {
+        "id": "f6",
+        "src": { "name": "Cut-Extrude1", "type": "Cut" },
+        "op": "extrude",
+        "suppressed": false,
+        "fidelity": { "rung": "pending" },
+        "mode": "remove",
+        "profile": { "kind": "feature-output", "feature": "f5", "role": "region" },
+        "flip": true,
+        "end": { "type": "throughAll" }
+      },
+      {
+        "id": "f7",
+        "src": { "name": "CirPattern1", "type": "CirPattern" },
+        "op": "circularPattern",
+        "suppressed": false,
+        "fidelity": { "rung": "pending" },
+        "seeds": ["f6"],
+        "axis": {
+          "kind": "topo",
+          "entity": "face",
+          "createdBy": "f2",
+          "role": "sideWall:l3",
+          "srcPersistId": "sw:persist:1002",
+          "signature": { "surface": "cylinder", "axis": [1, 0, 0], "axisPoint": [0, 0, 0], "radius": 0.005 }
+        },
+        "count": { "expr": "4", "value": 4, "unit": "" },
+        "angle": { "expr": "360 deg", "value": 6.283185307179586, "unit": "rad" },
+        "equalSpacing": true,
+        "flip": false
+      }
+    ]
+  }
+}

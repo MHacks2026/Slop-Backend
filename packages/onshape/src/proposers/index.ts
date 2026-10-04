@@ -3,6 +3,18 @@ import { angleExpression, lengthExpression } from "../expression.ts";
 import { applyDir, dot } from "../geometry.ts";
 import type { StepContext } from "../plan/executor.ts";
 import type { CreateFeatureOp, CreateSketchOp, Op, ParameterValue, Selection } from "../plan/types.ts";
+import { ProposalError } from "./errors.ts";
+import {
+  proposeChamfer,
+  proposeCircularPattern,
+  proposeHole,
+  proposeLinearPattern,
+  proposeMirror,
+  proposePlane,
+  proposeRevolve,
+  proposeShell,
+  selectionFor,
+} from "./features.ts";
 
 /**
  * Direct-mapping proposers (architecture doc §6, "Mapping rules as data").
@@ -13,12 +25,7 @@ import type { CreateFeatureOp, CreateSketchOp, Op, ParameterValue, Selection } f
  * returns plan ops with op ids equal to the IR feature id, so later refs
  * (`sketchRegion`, `createdBy`) line up with IR ids.
  */
-export class ProposalError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "ProposalError";
-  }
-}
+export { ProposalError };
 
 type Proposer<F extends Feature = Feature> = (f: F, ctx: StepContext, parameters: ReadonlyMap<string, import("@slop/ir").Parameter>) => Op[];
 
@@ -26,6 +33,14 @@ const PROPOSERS: { [K in FeatureOp]?: Proposer<Extract<Feature, { op: K }>> } = 
   sketch: proposeSketch,
   extrude: proposeExtrude,
   fillet: proposeFillet,
+  revolve: proposeRevolve,
+  chamfer: proposeChamfer,
+  shell: proposeShell,
+  plane: proposePlane,
+  mirror: proposeMirror,
+  linearPattern: proposeLinearPattern,
+  circularPattern: proposeCircularPattern,
+  hole: proposeHole,
 };
 
 export const proposableOps = (): FeatureOp[] => Object.keys(PROPOSERS) as FeatureOp[];
@@ -36,25 +51,18 @@ export function proposeDirect(f: Feature, ctx: StepContext, parameters: Readonly
   return p(f, ctx, parameters);
 }
 
-// --- helpers -----------------------------------------------------------------
-
-function selectionFor(irFeature: string, path: string, ref: Ref): Selection {
-  if (ref.kind === "datum") {
-    if (ref.name === "ORIGIN") return { kind: "origin" };
-    return { kind: "datum", name: ref.name };
-  }
-  if (ref.kind === "feature-output" && ref.role === "region") return { kind: "sketchRegion", sketch: ref.feature };
-  return { kind: "irRef", irFeature, path };
-}
+// --- sketch, extrude, fillet (verified live on the plate) --------------------
 
 function proposeSketch(f: SketchFeature): Op[] {
-  const external = [...f.constraints, ...f.dimensions].some((c) => c.args.some((a) => typeof a !== "string"));
+  // Args that are IR Refs (locating dimensions to model edges, on-edge relations) are
+  // resolved live by the executor, so they keep the sketch at rung 1.
+  const external = [...f.constraints, ...f.dimensions].flatMap((c) => c.args).filter((a) => typeof a !== "string").length;
   const op: CreateSketchOp = {
     op: "createSketch",
     id: f.id,
     name: f.src.name,
-    intent: `Reproduce ${f.src.name}: ${f.entities.length} entities, ${f.constraints.length} relations, ${f.dimensions.length} dimensions, on ${describePlane(f.plane)}`,
-    rung: external ? "approximated" : "exact",
+    intent: `Reproduce ${f.src.name}: ${f.entities.length} entities, ${f.constraints.length} relations, ${f.dimensions.length} dimensions${external ? ` (${external} to model geometry)` : ""}, on ${describePlane(f.plane)}`,
+    rung: "exact",
     plane: selectionFor(f.id, "plane", f.plane),
     irSketch: f.id,
     entities: f.entities,
@@ -71,7 +79,7 @@ function proposeExtrude(f: ExtrudeFeature, ctx: StepContext, parameters: Readonl
   if ((f.profile.index ?? 0) !== 0) throw new ProposalError("sketch region by index > 0 is not supported by the direct proposer");
 
   const params: ParameterValue[] = [
-    { id: "bodyType", enum: { name: "ToolBodyType", value: "SOLID" } },
+    { id: "bodyType", enum: { name: "ExtendedToolBodyType", value: "SOLID" } },
     { id: "operationType", enum: { name: "NewBodyOperationType", value: OPERATION[f.mode] } },
     { id: "entities", selections: [{ kind: "sketchRegion", sketch: f.profile.feature }] },
     ...endParams(f.id, "end", f.end, "endBound", "depth", "endBoundEntityFace", "endBoundEntityVertex", parameters),

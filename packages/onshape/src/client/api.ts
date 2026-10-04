@@ -19,6 +19,8 @@ export interface OnshapeApi {
   massProperties(ref: DocumentRef): Promise<MassPropertiesBody | undefined>;
   /** Remove a feature; used to undo a failed attempt before the translator retries. */
   deleteFeature(ref: DocumentRef, featureId: string): Promise<void>;
+  /** Replace a feature's definition in place (behaviour tests change a dimension this way). */
+  updateFeature(ref: DocumentRef, featureId: string, feature: BTFeature): Promise<AddFeatureResponse>;
   /** Onshape's parameter specs for native features (tool for the translator). Optional. */
   featureSpecs?(ref: DocumentRef): Promise<unknown>;
   /** PNG of the current model, base64. Optional; feedback image for the translator. */

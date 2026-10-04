@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    SOLIDWORKS extractor (architecture doc §3, §11): reads a part from a running
+    SOLIDWORKS session over COM and writes design-intent IR JSON.
+
+    .NET Framework 4.8 because SOLIDWORKS automation is COM on Windows and 4.8
+    ships with every supported Windows; nothing needs installing to run the exe.
+    It still builds anywhere (macOS, Linux CI) thanks to the reference-assembly
+    package, but it only runs on Windows next to SOLIDWORKS.
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <AssemblyName>SlopExtractor</AssemblyName>
+    <RootNamespace>Slop.SolidWorks</RootNamespace>
+    <Version>0.1.0</Version>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
+    <!-- The tests project compiles src/Core directly; keep it out of this build. -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);tests/**</DefaultItemExcludes>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      SOLIDWORKS 2024 SP1 interop assemblies, as published by Visiativ (a
+      SOLIDWORKS reseller). They are the same files as the api\redist folder
+      of a SOLIDWORKS install. Built against 2024, the exe runs on 2024 and
+      later; on older releases every call that existed then still works.
+    -->
+    <PackageReference Include="Visiativ.SOLIDWORKS.Interop" Version="32.1.0" />
+    <!-- Lets `dotnet build` target net48 on machines without the targeting pack. -->
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>

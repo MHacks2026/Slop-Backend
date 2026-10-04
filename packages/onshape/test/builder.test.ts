@@ -28,7 +28,7 @@ test("plate builds end to end against the fake with all Level 1 checks passing",
     [
       ["f1", "built", "exact", 1],
       ["f2", "built", "exact", 1],
-      ["f3", "built", "approximated", 1],
+      ["f3", "built", "exact", 1],
       ["f4", "built", "exact", 1],
       ["f5", "built", "exact", 1],
     ],
@@ -43,7 +43,9 @@ test("plate builds end to end against the fake with all Level 1 checks passing",
   const f3 = report.features[2]!;
   assert.deepEqual(f3.refs[0]!.deterministicIds, ["F_cap"]);
   assert.equal(f3.refs[0]!.resolver, "signature");
-  assert.match(f3.notes.join("\n"), /D2@Sketch2 references model geometry/);
+  // Locating dimensions to model edges are live references now (see sketch-refs.test.ts), so no downgrade note.
+  assert.equal(f3.refs.length, 3);
+  assert.doesNotMatch(f3.notes.join("\n"), /references model geometry/);
 
   const f5 = report.features[4]!;
   assert.deepEqual(f5.refs[0]!.deterministicIds, ["E_hole_top"]);
@@ -63,7 +65,9 @@ test("plate builds end to end against the fake with all Level 1 checks passing",
   const circle = sk2.entities[0]!;
   assert.equal(circle.btType, "BTMSketchCurve-4");
   if (circle.btType === "BTMSketchCurve-4") {
-    assert.ok(Math.abs(circle.geometry.xCenter) < 1e-12 && Math.abs(circle.geometry.yCenter) < 1e-12);
+    // Onshape sketch frames originate at the projected world origin (verified live), so the hole keeps its
+    // model position; the fake's cap frame has x = +Y, so model (0.025, 0.015) is local (0.015, -0.025).
+    assert.ok(Math.abs(circle.geometry.xCenter - 0.015) < 1e-12 && Math.abs(circle.geometry.yCenter + 0.025) < 1e-12);
     assert.equal(circle.geometry.radius, 0.0025);
   }
 
@@ -85,27 +89,58 @@ test("Level 1 divergence stops the build at the offending feature", async () => 
   assert.equal(report.plan.steps.length, 3);
 });
 
-test("an unmapped op is recorded as dropped and later features are not attempted", async () => {
+test("a feature the direct proposers refuse is recorded as dropped and later features are not attempted", async () => {
   const ir = structuredClone(plate);
+  // A circular pattern with skipped instances: every MVP op has a proposer, but skipped instances are refused rather than approximated.
   ir.partStudio.features.splice(4, 0, {
     id: "f4b",
-    src: { name: "Chamfer1" },
-    op: "chamfer",
+    src: { name: "CirPattern1" },
+    op: "circularPattern",
     suppressed: false,
     fidelity: { rung: "pending" },
-    spec: { type: "equalDistance", distance: { expr: "1 mm", value: 0.001, unit: "m" } },
-    edges: [{ kind: "topo", entity: "edge", createdBy: "f4" }],
-    tangentPropagation: true,
+    seeds: ["f4"],
+    axis: { kind: "topo", entity: "face", createdBy: "f4", signature: { surface: "cylinder", axis: [0, 0, 1], axisPoint: [0.025, 0.015, 0], radius: 0.0025 } },
+    count: { expr: "4", value: 4, unit: "" },
+    angle: { expr: "360 deg", value: 2 * Math.PI, unit: "rad" },
+    equalSpacing: true,
+    flip: false,
+    skipped: [2],
   });
   ir.partStudio.features[5] = { ...ir.partStudio.features[5]!, edges: [{ kind: "topo", entity: "edge", createdBy: "f4b" }] } as typeof ir.partStudio.features[5];
   assertValidDocument(ir);
 
   const report = await buildDocument(ir, new FakeOnshape(plateWorld(plate)));
-  const chamfer = report.features.find((f) => f.irId === "f4b")!;
-  assert.equal(chamfer.status, "failed");
-  assert.equal(chamfer.rung, "dropped");
-  assert.match(chamfer.error!, /no direct-mapping proposer for op "chamfer"/);
+  const pattern = report.features.find((f) => f.irId === "f4b")!;
+  assert.equal(pattern.status, "failed");
+  assert.equal(pattern.rung, "dropped");
+  assert.match(pattern.error!, /skipped instances has no direct proposer/);
   assert.equal(report.features.find((f) => f.irId === "f5"), undefined);
+});
+
+test("what the extractor could not carry is shown in the report as a source note", async () => {
+  const ir = structuredClone(plate);
+  ir.partStudio.features[3]!.fidelity = { rung: "pending", notes: "tapped hole: written as its tap drill; threads are not modelled" };
+  const report = await buildDocument(ir, new FakeOnshape(plateWorld(plate)), { behavior: false });
+  const cut = report.features.find((f) => f.irId === "f4")!;
+  assert.equal(cut.status, "built");
+  assert.deepEqual(cut.notes, ["source: tapped hole: written as its tap drill; threads are not modelled"]);
+  assert.match(renderMarkdown(report), /- Note: source: tapped hole/);
+});
+
+test("a sketch Onshape regenerates with a WARNING is reported as approximated, not exact", async () => {
+  const api = new FakeOnshape(plateWorld(plate));
+  const original = api.addFeature.bind(api);
+  api.addFeature = async (ref, feature) => {
+    const res = await original(ref, feature);
+    return feature.name === "Sketch2" ? { ...res, featureState: { featureStatus: "WARNING" } } : res;
+  };
+  const report = await buildDocument(plate, api, { behavior: false });
+  const sk2 = report.features.find((f) => f.irId === "f3")!;
+  assert.equal(sk2.status, "built");
+  assert.equal(sk2.featureStatus, "WARNING");
+  assert.equal(sk2.rung, "approximated");
+  assert.match(sk2.notes.join("\n"), /WARNING: at least one constraint/);
+  assert.equal(report.features.find((f) => f.irId === "f1")!.rung, "exact", "other sketches are unaffected");
 });
 
 test("an accepted plan replays without asking the planner again", async () => {

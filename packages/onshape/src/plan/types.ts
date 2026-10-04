@@ -24,7 +24,11 @@ export type Selection =
   /** Deterministic ids the translator saw in feedback or topology listings. The explicit pick for ties. */
   | { kind: "entities"; ids: string[] }
   /** Everything of one entity type created by an earlier plan feature, optionally narrowed by a predicate. */
-  | { kind: "createdBy"; feature: string; entity: "face" | "edge" | "vertex"; where?: EntityPredicate };
+  | { kind: "createdBy"; feature: string; entity: "face" | "edge" | "vertex"; where?: EntityPredicate }
+  /** One entity of a sketch built earlier in the plan, by its IR entity id (a revolve axis line, a pattern direction, a hole centre point). */
+  | { kind: "sketchEntity"; sketch: string; entity: string }
+  /** Whole features built earlier in the plan (pattern and mirror seeds). */
+  | { kind: "features"; features: string[] };
 
 export interface EntityPredicate {
   /** Surface or curve type, lower-case: plane, cylinder, line, circle, ... */
@@ -72,6 +76,12 @@ export interface CreateSketchOp extends OpBase {
    * absent, coordinates are taken directly in Onshape's plane frame.
    */
   irSketch?: string;
+  /**
+   * Sketch-to-model transform of the 2D coordinates, for sketches that have no
+   * IR counterpart (a composite's helper sketch). Takes precedence over
+   * `irSketch` for coordinates; row-major 4x4, metres.
+   */
+  transform?: number[];
   entities: SketchEntity[];
   constraints: Constraint[];
   dimensions: Dimension[];
