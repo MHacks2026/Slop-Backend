@@ -1,10 +1,28 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { buildRoutes } from "./builds";
 import { setCustomClaims, verifyIdToken } from "./firebase";
+import { supabaseBuildsDb } from "./supabase";
 
 const app = new Hono<{ Bindings: CloudflareBindings }>();
 
 app.use("/api/*", cors());
+
+// Builds: POST /api/projects/:projectId/builds, GET /api/builds/:id, GET /api/builds/:id/events
+app.all("/api/projects/:projectId/builds", (c) => mountBuilds(c.env).fetch(c.req.raw));
+app.all("/api/builds/*", (c) => mountBuilds(c.env).fetch(c.req.raw));
+
+function mountBuilds(env: CloudflareBindings) {
+  const root = new Hono();
+  root.route(
+    "/api",
+    buildRoutes({
+      verifyToken: async (token) => ({ uid: (await verifyIdToken(env, token)).sub }),
+      db: supabaseBuildsDb(env),
+    }),
+  );
+  return root;
+}
 
 app.get("/api/health", (c) => {
   return c.json({ ok: true });

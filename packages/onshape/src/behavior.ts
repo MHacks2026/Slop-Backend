@@ -62,6 +62,8 @@ export interface BehaviorOptions {
   tolerances?: Tolerances;
   bodyStats?: boolean;
   log?: (line: string) => void;
+  /** Called as each test finishes, for streaming progress. */
+  onResult?: (result: BehaviorResult, index: number) => void;
 }
 
 export async function runBehaviorTests(
@@ -72,7 +74,11 @@ export async function runBehaviorTests(
   options: BehaviorOptions = {},
 ): Promise<BehaviorResult[]> {
   const results: BehaviorResult[] = [];
-  for (const c of cases) results.push(await runOne(api, ref, c, nominal, options));
+  for (const [i, c] of cases.entries()) {
+    const r = await runOne(api, ref, c, nominal, options);
+    results.push(r);
+    options.onResult?.(r, i);
+  }
   return results;
 }
 

@@ -15,6 +15,7 @@
         "node"
     ]
   },
-  // supabase/functions is Deno (own deno.json); scripts/ has its own tsconfig.
-  "exclude": ["node_modules", "supabase/functions", "scripts"],
+  // The Worker only: packages/* and scripts/ have their own tsconfigs; supabase/functions is Deno.
+  "include": ["src", "worker-configuration.d.ts"],
+  "exclude": ["node_modules", "supabase/functions", "scripts", "packages"],
 }

@@ -37,11 +37,47 @@ npm run deploy
 
 After deploying, set the frontend's `VITE_API_URL` to the Worker's URL.
 
+## Builds: SolidWorks IR → Onshape
+
+A *build* takes an IR document (produced on the user's machine by the extractor) and rebuilds it in Onshape feature by feature, with per-feature checks and Level 3 behaviour tests. Three pieces:
+
+| Piece | Where | Role |
+|---|---|---|
+| Tables `builds`, `build_events`; RPCs `request_build`, `claim_build` | `supabase/migrations/0004_builds.sql` | Queue, progress stream (Realtime-enabled), results. The web app uses these directly. |
+| Worker routes | `src/builds.ts` | For clients without a Supabase SDK, chiefly the extractor. Firebase token in `Authorization: Bearer`. |
+| Runner | `packages/runner` | Claims queued builds, runs `@slop/onshape` with the Onshape/LLM keys, writes events and the report. |
+
+Worker routes:
+
+```
+POST /api/projects/:projectId/builds   { ir, planner?: "rules" | "claude", name? }  -> 201 { id, status: "queued" }
+GET  /api/builds/:id                                                              -> build row (status, Onshape ids, summary)
+GET  /api/builds/:id/events?after=<seq>&limit=<n>                                 -> { build: { id, status }, events: [{ seq, kind, payload }] }
+```
+
+Event kinds, in order: `document` (Onshape ids and URL, as soon as the document exists), one `feature` per IR feature as it finishes, one `behavior` per behaviour test, `log` lines throughout, and `finished` last. Full IR validation happens in the runner; the Worker only checks the shape.
+
+Run the runner on any machine with the keys (for a demo, a laptop):
+
+```sh
+cp packages/onshape/.env.example packages/onshape/.env   # Onshape + Anthropic keys
+npm run runner                                           # polls Supabase; --once to process one build and exit
+```
+
+Queue a build from the command line with a Firebase ID token:
+
+```sh
+curl -X POST "$VITE_API_URL/api/projects/<project-id>/builds" -H "Authorization: Bearer $TOKEN" -H "content-type: application/json" \
+  --data "{\"ir\": $(cat packages/ir/fixtures/plate.ir.json), \"planner\": \"rules\"}"
+```
+
 ## Migrations
 
 | File | Contents |
 |---|---|
 | `0001_cad_hub_schema.sql` | Projects, parts, content-addressed blobs, commits/snapshots, branches, tags, conversion jobs, RLS, storage buckets, `create_commit`, `claim_conversion_job` |
 | `0002_firebase_auth.sql` | Firebase UIDs (`text`) in place of `auth.users` UUIDs, `current_uid()`, `ensure_profile`, private `profiles.email`, owner-protection trigger, `project_invites` + `add_member_by_identifier` / `accept_pending_invites`, `exports` / `export_items` + `request_export`, Realtime for export progress |
+| `0003_export_triggers.sql` | pg_net triggers that call the `bundle-export` Edge Function when an export can be zipped |
+| `0004_builds.sql` | `builds` + `build_events`, `request_build` (contributors), `claim_build` (runner), `can_read_project_as` (Worker), Realtime for build progress |
 
 `profiles.email` is hidden with column-level grants, so clients must list profile columns explicitly (`select("id, username, display_name, avatar_url")`). `select("*")` on `profiles` returns a permission error.

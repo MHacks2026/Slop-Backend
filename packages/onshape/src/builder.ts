@@ -40,7 +40,15 @@ export interface BuildOptions {
    */
   behavior?: boolean;
   log?: (line: string) => void;
+  /** Structured progress, in order: the document, each feature as it finishes, each behaviour test. */
+  onEvent?: (event: BuildEvent) => void;
 }
+
+/** Progress a caller can stream to a UI while a build runs. */
+export type BuildEvent =
+  | { type: "document"; document: DocumentRef }
+  | { type: "feature"; index: number; total: number; record: FeatureRecord }
+  | { type: "behavior"; index: number; total: number; result: BehaviorResult };
 
 export interface AttemptRecord {
   n: number;
@@ -115,6 +123,8 @@ export async function buildDocument(ir: Document, api: OnshapeApi, options: Buil
   const irIntentHash = hashDocument(ir).intent;
   const ref = options.target ?? (await api.createDocument(options.name ?? ir.partStudio.name));
   log(`document ${ref.did} workspace ${ref.wid} part studio ${ref.eid} planner=${planner.provenance.planner}`);
+  options.onEvent?.({ type: "document", document: ref });
+  const total = ir.partStudio.features.length;
 
   const executor = new Executor(ir, api, ref, options.resolver ?? {});
   const records: FeatureRecord[] = [];
@@ -141,6 +151,7 @@ export async function buildDocument(ir: Document, api: OnshapeApi, options: Buil
       rec.status = "skipped";
       rec.rung = "exact";
       rec.notes.push("suppressed in source; not created");
+      options.onEvent?.({ type: "feature", index, total, record: rec });
       continue;
     }
 
@@ -242,6 +253,7 @@ export async function buildDocument(ir: Document, api: OnshapeApi, options: Buil
       rec.error ??= rec.attemptLog.at(-1)?.summary ?? "translator gave up";
       rec.rung = rec.rung === "pending" ? "dropped" : rec.rung;
       log(`${f.src.name}: FAILED ${rec.error}`);
+      options.onEvent?.({ type: "feature", index, total, record: rec });
       if (options.stopOnDivergence !== false) {
         stoppedEarly = true;
         break;
@@ -249,6 +261,7 @@ export async function buildDocument(ir: Document, api: OnshapeApi, options: Buil
       continue;
     }
     steps.push(accepted);
+    options.onEvent?.({ type: "feature", index, total, record: rec });
   }
 
   const behaviorTests = stoppedEarly ? [] : await planner.proposeBehaviorTests(ir, steps);
@@ -257,10 +270,12 @@ export async function buildDocument(ir: Document, api: OnshapeApi, options: Buil
   let behavior: BehaviorResult[] = [];
   if (!stoppedEarly && options.behavior !== false) {
     const nominal = [...ir.partStudio.features].reverse().find((f) => f.evidence)?.evidence;
-    behavior = await runBehaviorTests(api, ref, behaviorCases(ir, behaviorTests), nominal, {
+    const cases = behaviorCases(ir, behaviorTests);
+    behavior = await runBehaviorTests(api, ref, cases, nominal, {
       ...(options.tolerances ? { tolerances: options.tolerances } : {}),
       ...(options.bodyStats === false ? { bodyStats: false } : {}),
       log,
+      onResult: (result, index) => options.onEvent?.({ type: "behavior", index, total: cases.length, result }),
     });
   }
 

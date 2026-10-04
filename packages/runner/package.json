@@ -1,0 +1,25 @@
+{
+  "name": "@slop/runner",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Build runner: claims queued builds from Supabase, rebuilds the IR in Onshape, streams progress events, stores the report.",
+  "type": "module",
+  "exports": {
+    ".": "./src/run-build.ts"
+  },
+  "scripts": {
+    "start": "node --import tsx src/main.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test \"test/**/*.test.ts\""
+  },
+  "dependencies": {
+    "@slop/ir": "*",
+    "@slop/onshape": "*",
+    "@supabase/supabase-js": "^2.117.2"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "tsx": "^4.19.4",
+    "typescript": "^7.0.2"
+  }
+}
