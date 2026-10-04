@@ -44,13 +44,21 @@ export interface BuildOptions {
   /** How many planner-proposed perturbations without source evidence to run (they cost API calls). Default 3. */
   maxUnverifiedBehavior?: number;
   log?: (line: string) => void;
-  /** Structured progress, in order: the document, each feature as it finishes, each behaviour test. */
+  /**
+   * Structured progress, in order: the document; per feature, `featureStart`, one `attempt` per
+   * propose/execute/measure cycle, then `feature` when it finishes; each behaviour test.
+   */
   onEvent?: (event: BuildEvent) => void;
 }
+
+/** How one propose → execute → measure cycle ended. */
+export type AttemptOutcome = "invalid" | "execFailed" | "diverged" | "accepted";
 
 /** Progress a caller can stream to a UI while a build runs. */
 export type BuildEvent =
   | { type: "document"; document: DocumentRef }
+  | { type: "featureStart"; index: number; total: number; irId: string; name: string; op: FeatureOp }
+  | { type: "attempt"; index: number; total: number; irId: string; outcome: AttemptOutcome; attempt: AttemptRecord }
   | { type: "feature"; index: number; total: number; record: FeatureRecord }
   | { type: "behavior"; index: number; total: number; result: BehaviorResult };
 
@@ -165,6 +173,11 @@ export async function buildDocument(ir: Document, api: OnshapeApi, options: Buil
       continue;
     }
 
+    options.onEvent?.({ type: "featureStart", index, total, irId: f.id, name: f.src.name, op: f.op });
+    const attempted = (outcome: AttemptOutcome, attempt: AttemptRecord) => {
+      rec.attemptLog.push(attempt);
+      options.onEvent?.({ type: "attempt", index, total, irId: f.id, outcome, attempt });
+    };
     const req: StepRequest = { ir, feature: f, index, priorSteps: steps, context: executor };
     let proposal: StepProposal | undefined;
     try {
@@ -174,6 +187,7 @@ export async function buildDocument(ir: Document, api: OnshapeApi, options: Buil
       rec.rung = "dropped";
       rec.error = err instanceof Error ? err.message : String(err);
       log(`${f.src.name}: FAILED to propose: ${rec.error}`);
+      options.onEvent?.({ type: "feature", index, total, record: rec });
       if (options.stopOnDivergence !== false) {
         stoppedEarly = true;
         break;
@@ -192,7 +206,7 @@ export async function buildDocument(ir: Document, api: OnshapeApi, options: Buil
       } catch (err) {
         const issues = err instanceof PlanValidationError ? err.issues : [err instanceof Error ? err.message : String(err)];
         const feedback = feedbackFromErrors(issues, "plan failed schema validation");
-        rec.attemptLog.push({ n, reasoning: proposal.reasoning, errors: issues, checks: [], summary: feedback.summary });
+        attempted("invalid", { n, reasoning: proposal.reasoning, errors: issues, checks: [], summary: feedback.summary });
         log(`${f.src.name}: attempt ${n} invalid plan: ${issues[0]}`);
         proposal = await planner.reviseStep(req, proposal, feedback);
         continue;
@@ -202,7 +216,7 @@ export async function buildDocument(ir: Document, api: OnshapeApi, options: Buil
       if (execution.error) {
         await executor.undo(execution);
         const feedback = feedbackFromExecution(execution.error);
-        rec.attemptLog.push({ n, reasoning: checked.reasoning, errors: feedback.errors, checks: [], summary: feedback.summary });
+        attempted("execFailed", { n, reasoning: checked.reasoning, errors: feedback.errors, checks: [], summary: feedback.summary });
         log(`${f.src.name}: attempt ${n} exec failed: ${feedback.summary}`);
         proposal = await planner.reviseStep(req, checked, feedback);
         continue;
@@ -254,7 +268,7 @@ export async function buildDocument(ir: Document, api: OnshapeApi, options: Buil
         rec.onshapeFeatureId = undefined;
         rec.featureStatus = undefined;
         const feedback = feedbackFromChecks(checks, execution);
-        rec.attemptLog.push({ n, reasoning: checked.reasoning, errors: feedback.errors, checks, summary: feedback.summary });
+        attempted("diverged", { n, reasoning: checked.reasoning, errors: feedback.errors, checks, summary: feedback.summary });
         log(`${f.src.name}: attempt ${n} ${feedback.summary}`);
         proposal = await planner.reviseStep(req, checked, feedback);
         continue;
@@ -264,7 +278,7 @@ export async function buildDocument(ir: Document, api: OnshapeApi, options: Buil
       executor.accept(f.id, opIds);
       accepted = { irFeature: f.id, ops: checked.ops, reasoning: checked.reasoning, attempts: n };
       if (f.evidence && measured && (baseline || rec.rung === "approximated")) baseline = { source: f.evidence, onshape: measured };
-      rec.attemptLog.push({ n, reasoning: checked.reasoning, errors: [], checks, summary: "accepted" });
+      attempted("accepted", { n, reasoning: checked.reasoning, errors: [], checks, summary: "accepted" });
       log(`${f.src.name}: ${f.op} -> ${rec.onshapeFeatureId ?? "?"} [${rec.featureStatus ?? "?"}] rung=${rec.rung} attempts=${n}`);
 
       if (options.captureView && api.shadedView) {

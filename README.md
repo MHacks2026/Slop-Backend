@@ -77,7 +77,7 @@ GET  /api/builds/:id                                                            
 GET  /api/builds/:id/events?after=<seq>&limit=<n>                                 -> { build: { id, status }, events: [{ seq, kind, payload }] }
 ```
 
-Event kinds, in order: `document` (Onshape ids and URL, as soon as the document exists), one `feature` per IR feature as it finishes, one `behavior` per behaviour test, `log` lines throughout, and `finished` last. Full IR validation happens in the runner; the Worker only checks the shape.
+Event kinds, in order: `document` (Onshape ids and URL, as soon as the document exists); per IR feature, `featureStart`, one `attempt` per propose/execute/measure cycle (`outcome`: `invalid`, `execFailed`, `diverged` or `accepted`), then `feature` when it finishes; one `behavior` per behaviour test; `log` lines throughout; and `finished` last. Full IR validation happens in the runner; the Worker only checks the shape.
 
 Run the runner on any machine with the Supabase service key and the Anthropic key (for a demo, a laptop):
 
@@ -95,6 +95,36 @@ curl -X POST "$VITE_API_URL/api/projects/<project-id>/builds" -H "Authorization:
   --data "{\"ir\": $(cat packages/ir/fixtures/plate.ir.json), \"planner\": \"rules\"}"
 ```
 
+## Studio: live migrations from the web app
+
+`packages/server` is the backend for the web app's live migrations (Slop-Frontend `/migrate`). A signed-in user pastes an Onshape document link, picks a part, and watches it rebuild in their Onshape account. Run the studio server on the laptop with SolidWorks:
+
+```sh
+npm run studio                 # http://localhost:8788; --port, --host 0.0.0.0
+```
+
+**Onshape keys never pass through the browser after sign-up.** The user saves them once, with `PUT /api/me/onshape` (above); the secret key is stored encrypted in Vault. For each change (connect, start, cancel, extract, upload, replay), the web app sends only the user's Firebase ID token. The studio server:
+
+1. verifies the token, as the Worker does;
+2. reads that user's keys with the service role (`user_onshape_credentials`, migration `0006`);
+3. holds them only in that run's Onshape client while it runs. They are never written to events, snapshots, recordings or logs.
+
+Users without keys on file get a 409. A run can only be cancelled by the user who started it. Reads (status, runs, events, meshes) stay open, so a second screen can watch without signing in; none of them include keys.
+
+Configuration:
+- Accounts: `SUPABASE_URL`, `SUPABASE_SECRET_KEY` (the secret key, `sb_secret_…`) and `FIREBASE_PROJECT_ID`, from the environment or `.dev.vars`, read the same way as the runner. Without them, "user" routes answer 503.
+- Claude planner: `ANTHROPIC_API_KEY` and `ANTHROPIC_MODEL` from `packages/onshape/.env`. Without them, only the rules planner is offered. The Onshape keys in that file are ignored.
+
+| Piece | Role |
+|---|---|
+| `src/sources.ts` | Where the IR comes from: `SlopExtractor.exe extract --active` against the open SolidWorks (Windows, built extractor), the fixtures in `packages/ir/fixtures`, or an uploaded `.ir.json`. All are fully validated. |
+| `src/runs.ts` | One run per migration: opens the document, builds into a new Part Studio tab or the linked one (clearing it only when asked), runs `runBuild` with `target`, and streams events. After each solid feature, the builder's next Onshape call waits until the viewer's tessellation has been fetched, so each mesh shows exactly that feature. Supports cancel; finished runs are recorded to `out/studio/recordings/` and can be replayed with no API calls. |
+| `src/mesh.ts` | Onshape `tessellatedfaces` → per-face base64 Float32 triangles (about 1 MB of JSON down to tens of kB), keeping face ids so the viewer can light up new faces. |
+| `src/accounts.ts` | Firebase ID token check and the per-user key lookup (`user_onshape_credentials`). |
+| `src/app.ts` | HTTP API (route list in the file header): status, sources, `POST /api/onshape/connect` (the user's keys against the document), runs, Server-Sent Events, meshes, recordings. |
+
+Each tessellation costs one Onshape call per solid feature, and the run's call counter includes it. A plate with the rules planner and no behaviour tests took 24 calls in total.
+
 ## Migrations
 
 | File | Contents |
@@ -104,5 +134,6 @@ curl -X POST "$VITE_API_URL/api/projects/<project-id>/builds" -H "Authorization:
 | `0003_export_triggers.sql` | pg_net triggers that call the `bundle-export` Edge Function when an export can be zipped |
 | `0004_builds.sql` | `builds` + `build_events`, `request_build` (contributors), `claim_build` (runner), `can_read_project_as` (Worker), Realtime for build progress |
 | `0005_onshape_credentials.sql` | `onshape_credentials` (one per user; secret key in Vault), `set_onshape_credentials` (Worker), `build_onshape_credentials` (runner) |
+| `0006_studio_onshape_credentials.sql` | `user_onshape_credentials` (studio server): a signed-in user's keys for a live migration |
 
 `profiles.email` is hidden with column-level grants, so clients must list profile columns explicitly (`select("id, username, display_name, avatar_url")`). `select("*")` on `profiles` returns a permission error.
