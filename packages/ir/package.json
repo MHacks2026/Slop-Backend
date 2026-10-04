@@ -16,7 +16,8 @@
   ],
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "node --import tsx --test \"test/**/*.test.ts\""
+    "test": "node --import tsx --test \"test/**/*.test.ts\"",
+    "validate": "node --import tsx src/cli.ts"
   },
   "dependencies": {
     "ajv": "^8.17.1",

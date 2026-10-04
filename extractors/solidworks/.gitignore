@@ -1,0 +1,6 @@
+# .NET build output
+bin/
+obj/
+tests/bin/
+tests/obj/
+*.user
