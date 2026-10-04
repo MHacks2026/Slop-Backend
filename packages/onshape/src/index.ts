@@ -1,5 +1,5 @@
 export { buildDocument, DATUM_REMAP } from "./builder.ts";
-export type { AttemptRecord, BuildEvent, BuildOptions, BuildReport, FeatureRecord } from "./builder.ts";
+export type { AttemptOutcome, AttemptRecord, BuildEvent, BuildOptions, BuildReport, FeatureRecord } from "./builder.ts";
 export { OnshapeClient } from "./client/client.ts";
 export type { OnshapeApi } from "./client/api.ts";
 export { OnshapeHttp, OnshapeHttpError, OnshapeQuotaError } from "./client/http.ts";

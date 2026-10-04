@@ -77,7 +77,7 @@ GET  /api/builds/:id                                                            
 GET  /api/builds/:id/events?after=<seq>&limit=<n>                                 -> { build: { id, status }, events: [{ seq, kind, payload }] }
 ```
 
-Event kinds, in order: `document` (Onshape ids and URL, as soon as the document exists), one `feature` per IR feature as it finishes, one `behavior` per behaviour test, `log` lines throughout, and `finished` last. Full IR validation happens in the runner; the Worker only checks the shape.
+Event kinds, in order: `document` (Onshape ids and URL, as soon as the document exists); per IR feature, `featureStart`, one `attempt` per propose/execute/measure cycle (`outcome`: `invalid`, `execFailed`, `diverged` or `accepted`), then `feature` when it finishes; one `behavior` per behaviour test; `log` lines throughout; and `finished` last. Full IR validation happens in the runner; the Worker only checks the shape.
 
 Run the runner on any machine with the Supabase service key and the Anthropic key (for a demo, a laptop):
 
@@ -95,49 +95,6 @@ curl -X POST "$VITE_API_URL/api/projects/<project-id>/builds" -H "Authorization:
   --data "{\"ir\": $(cat packages/ir/fixtures/plate.ir.json), \"planner\": \"rules\"}"
 ```
 
-## SOLIDWORKS agent: extraction on request
-
-The extractor (`extractors/solidworks`) can run as an agent on the user's Windows machine, next to SOLIDWORKS. The backend can't reach that machine, so the agent calls in: it polls the Worker, reads the part when asked, and posts the IR, which queues a build as the user who asked for it.
-
-```
-web app ── POST /api/projects/:p/extractions ──▶ extractions (queued)
-                                                     │
-agent ──── POST /api/agent/poll (every ~2 s) ────────┘ claims it, reads the part from SOLIDWORKS
-  ├─ POST /api/agent/extractions/:id/progress   { line }
-  └─ POST /api/agent/extractions/:id/result     { ir, report }  ──▶ builds (queued) ──▶ runner ──▶ Onshape
-```
-
-**Pairing.** The signed-in user calls `POST /api/agents` and gets a token (`slop_agent_…`), shown once; only its SHA-256 is stored. The agent sends it as `Authorization: Bearer`. Revoking the agent (`DELETE /api/agents/:id`) stops the token working.
-
-User routes (Firebase token):
-
-```
-POST   /api/agents                               { name? }                               -> 201 { id, name, token }
-GET    /api/agents                                                                       -> { agents: [{ id, name, online, lastSeenAt, createdAt, status }] }
-DELETE /api/agents/:id                                                                   -> { revoked: true }
-POST   /api/projects/:projectId/extractions      { agentId, target?, planner?, behavior? } -> 201 { id, status: "queued" }
-GET    /api/extractions/:id                                                              -> extraction row (status, progress, error, report, build_id)
-```
-
-`target` is `{ "kind": "active" }` (the default: the part in front of the user) or `{ "kind": "path", "path": "C:\\parts\\plate.SLDPRT" }`. `behavior` (0–10, default 0) is how many driving dimensions to perturb for Level 3 evidence; it is off by default because on an open document the extractor changes and restores the user's dimensions. Requesting an extraction answers 409 when the agent is offline (not seen for 30 s) or the user has no Onshape keys, 403 when the user isn't a contributor, 404 for someone else's agent. The web app can also call `request_extraction` directly over Supabase and follow `extractions` through Realtime.
-
-Agent routes (agent token):
-
-```
-POST /api/agent/poll                        { version?, solidworks? }  -> { pollMs, job: null | { id, target, behavior } }
-POST /api/agent/extractions/:id/progress    { line }                   -> { status }   stop unless "processing"
-POST /api/agent/extractions/:id/result      { ir, report? }            -> 201 { buildId }
-POST /api/agent/extractions/:id/fail        { error, report? }         -> { status: "failed" }
-```
-
-`solidworks` is the agent's view of SOLIDWORKS (running, release, active and open documents); `GET /api/agents` shows it to the user. Two rules for agents: poll only when idle (a poll fails any extraction still processing for that agent, since it must have been cut off), and while extracting send progress at least every 10 seconds so the agent stays online. A malformed IR, or a build the database refuses, fails the extraction with the reason.
-
-Try the whole loop without Windows: `npm run dev`, pair with `POST /api/agents`, then run a fake agent that answers every extraction with a fixture IR:
-
-```sh
-npm run fake-agent -- --token slop_agent_...   # --ir <file.ir.json>, --fail, --once, --server <url>
-```
-
 ## Migrations
 
 | File | Contents |
@@ -147,6 +104,5 @@ npm run fake-agent -- --token slop_agent_...   # --ir <file.ir.json>, --fail, --
 | `0003_export_triggers.sql` | pg_net triggers that call the `bundle-export` Edge Function when an export can be zipped |
 | `0004_builds.sql` | `builds` + `build_events`, `request_build` (contributors), `claim_build` (runner), `can_read_project_as` (Worker), Realtime for build progress |
 | `0005_onshape_credentials.sql` | `onshape_credentials` (one per user; secret key in Vault), `set_onshape_credentials` (Worker), `build_onshape_credentials` (runner) |
-| `0006_agents.sql` | `agents` (paired machines, token hashes, heartbeat) + `extractions`, `request_extraction` (users), `agent_poll` / `agent_progress` / `complete_extraction` / `fail_extraction` (Worker for agents), Realtime for extractions |
 
 `profiles.email` is hidden with column-level grants, so clients must list profile columns explicitly (`select("id, username, display_name, avatar_url")`). `select("*")` on `profiles` returns a permission error.
