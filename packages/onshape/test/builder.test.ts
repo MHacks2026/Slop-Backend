@@ -28,7 +28,7 @@ test("plate builds end to end against the fake with all Level 1 checks passing",
     [
       ["f1", "built", "exact", 1],
       ["f2", "built", "exact", 1],
-      ["f3", "built", "approximated", 1],
+      ["f3", "built", "exact", 1],
       ["f4", "built", "exact", 1],
       ["f5", "built", "exact", 1],
     ],
@@ -43,7 +43,9 @@ test("plate builds end to end against the fake with all Level 1 checks passing",
   const f3 = report.features[2]!;
   assert.deepEqual(f3.refs[0]!.deterministicIds, ["F_cap"]);
   assert.equal(f3.refs[0]!.resolver, "signature");
-  assert.match(f3.notes.join("\n"), /D2@Sketch2 references model geometry/);
+  // Locating dimensions to model edges are live references now (see sketch-refs.test.ts), so no downgrade note.
+  assert.equal(f3.refs.length, 3);
+  assert.doesNotMatch(f3.notes.join("\n"), /references model geometry/);
 
   const f5 = report.features[4]!;
   assert.deepEqual(f5.refs[0]!.deterministicIds, ["E_hole_top"]);

@@ -48,13 +48,15 @@ function selectionFor(irFeature: string, path: string, ref: Ref): Selection {
 }
 
 function proposeSketch(f: SketchFeature): Op[] {
-  const external = [...f.constraints, ...f.dimensions].some((c) => c.args.some((a) => typeof a !== "string"));
+  // Args that are IR Refs (locating dimensions to model edges, on-edge relations) are
+  // resolved live by the executor, so they keep the sketch at rung 1.
+  const external = [...f.constraints, ...f.dimensions].flatMap((c) => c.args).filter((a) => typeof a !== "string").length;
   const op: CreateSketchOp = {
     op: "createSketch",
     id: f.id,
     name: f.src.name,
-    intent: `Reproduce ${f.src.name}: ${f.entities.length} entities, ${f.constraints.length} relations, ${f.dimensions.length} dimensions, on ${describePlane(f.plane)}`,
-    rung: external ? "approximated" : "exact",
+    intent: `Reproduce ${f.src.name}: ${f.entities.length} entities, ${f.constraints.length} relations, ${f.dimensions.length} dimensions${external ? ` (${external} to model geometry)` : ""}, on ${describePlane(f.plane)}`,
+    rung: "exact",
     plane: selectionFor(f.id, "plane", f.plane),
     irSketch: f.id,
     entities: f.entities,

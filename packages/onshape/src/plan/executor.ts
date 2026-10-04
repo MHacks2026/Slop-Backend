@@ -1,12 +1,12 @@
-import type { DatumName, Document, EntityType, Feature, Parameter, Ref, Rung, TopoRef } from "@slop/ir";
+import type { Constraint, DatumName, Dimension, Document, EntityType, Feature, Parameter, Ref, Rung, SketchArg, TopoRef } from "@slop/ir";
 import type { OnshapeApi } from "../client/api.ts";
 import type { BTFeature, BTMFeature, BTParameter, BTQuery, DocumentRef } from "../client/types.ts";
 import { boolParam, enumParam, idQuery, quantity, queryList, sketchRegionQuery, stringParam } from "../expression.ts";
 import { frameOf, querySketchPlane, queryTopology, type Candidate } from "../fs/topology.ts";
 import { dist, dot, normalize, sameFrame, type PlaneFrame } from "../geometry.ts";
 import { rankCandidates, type RankedCandidate, type ResolveOptions } from "../resolver.ts";
-import { composeSketch, SketchComposeError } from "../sketch/compose.ts";
-import type { EntityPredicate, Op, ParameterValue, Selection } from "./types.ts";
+import { composeSketch, externalArg, parseExternalArg, SketchComposeError } from "../sketch/compose.ts";
+import type { CreateSketchOp, EntityPredicate, Op, ParameterValue, Selection } from "./types.ts";
 
 /**
  * SolidWorks default planes -> Onshape default planes, chosen so the part
@@ -182,7 +182,11 @@ export class Executor implements StepContext {
         if (!frame) throw new ExecutionError(op.id, "sketch plane resolved without a frame");
         const irSketch = op.irSketch ? this.irById.get(op.irSketch) : undefined;
         if (op.irSketch && (!irSketch || irSketch.op !== "sketch")) throw new ExecutionError(op.id, `irSketch "${op.irSketch}" is not an IR sketch`);
-        const needsOrigin = [...op.constraints, ...op.dimensions].some((c) => c.args.includes("ORIGIN"));
+        // Model-geometry args (locating dimensions to edges, on-edge relations) are
+        // resolved to deterministic ids here so the sketch references them live.
+        const resolvedArgs = await this.resolveSketchArgs(op);
+        selections.push(...resolvedArgs.records);
+        const needsOrigin = [...resolvedArgs.constraints, ...resolvedArgs.dimensions].some((c) => c.args.includes("ORIGIN"));
         let composed;
         try {
           composed = composeSketch({
@@ -191,8 +195,8 @@ export class Executor implements StepContext {
             frame,
             ...(irSketch && irSketch.op === "sketch" ? { sourceTransform: irSketch.transform } : {}),
             entities: op.entities,
-            constraints: op.constraints,
-            dimensions: op.dimensions,
+            constraints: resolvedArgs.constraints,
+            dimensions: resolvedArgs.dimensions,
             ...(needsOrigin ? { originId: await this.originId() } : {}),
             parameters: this.parameters,
             idPrefix: op.id,
@@ -270,6 +274,53 @@ export class Executor implements StepContext {
   }
 
   // --- selections ------------------------------------------------------------
+
+  /**
+   * Replace every model-geometry argument of a sketch's constraints and
+   * dimensions with an "ext:<id>" argument the composer can write as an
+   * external query. IR Refs go through the resolver cascade (a tie surfaces
+   * as AmbiguousSelectionError, so the planner can pick); explicit
+   * "ext:<id>" picks from the planner are recorded as-is.
+   */
+  private async resolveSketchArgs(op: CreateSketchOp): Promise<{ constraints: Constraint[]; dimensions: Dimension[]; records: SelectionRecord[] }> {
+    const records: SelectionRecord[] = [];
+    const irFeature = op.irSketch ?? op.id;
+
+    const resolveArgs = async (args: SketchArg[], label: string, pathOf: (j: number) => string): Promise<SketchArg[]> => {
+      const out: SketchArg[] = [];
+      for (let j = 0; j < args.length; j++) {
+        const arg = args[j]!;
+        const explicit = parseExternalArg(arg);
+        if (explicit) {
+          records.push({ opId: op.id, parameterId: label, selection: { kind: "entities", ids: explicit }, deterministicIds: explicit, resolver: "explicit", confidence: 1 });
+          out.push(arg);
+          continue;
+        }
+        if (typeof arg === "string") {
+          out.push(arg);
+          continue;
+        }
+        if (arg.kind === "feature-output" && arg.role === "region") throw new ExecutionError(op.id, `${label}: a sketch region cannot be a constraint or dimension argument`);
+        const sel: Selection = { kind: "irRef", irFeature, path: pathOf(j) };
+        const r = await this.resolveIrRef(op.id, label, sel, arg, arg.kind === "topo" ? arg.entity : undefined);
+        records.push(r.record);
+        out.push(externalArg(r.record.deterministicIds));
+      }
+      return out;
+    };
+
+    const constraints: Constraint[] = [];
+    for (let i = 0; i < op.constraints.length; i++) {
+      const c = op.constraints[i]!;
+      constraints.push({ ...c, args: await resolveArgs(c.args, `constraint[${i}]`, (j) => `constraints[${i}].args[${j}]`) });
+    }
+    const dimensions: Dimension[] = [];
+    for (let i = 0; i < op.dimensions.length; i++) {
+      const d = op.dimensions[i]!;
+      dimensions.push({ ...d, args: await resolveArgs(d.args, d.id, (j) => `dimensions[${i}].args[${j}]`) });
+    }
+    return { constraints, dimensions, records };
+  }
 
   private async resolveSelection(
     opId: string,

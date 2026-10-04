@@ -5,7 +5,7 @@ import type { BehaviorTest, PlanStep } from "../plan/types.ts";
 import { validateStepProposal } from "../plan/validate.ts";
 import type { Feedback, LlmUsage, Planner, StepProposal, StepRequest } from "./types.ts";
 
-export const CLAUDE_PROMPT_VERSION = "0.1.0";
+export const CLAUDE_PROMPT_VERSION = "0.1.1";
 
 export interface ClaudeConfig {
   apiKey: string;
@@ -30,6 +30,11 @@ Selections:
 - {kind:"irRef", irFeature:"f3", path:"plane"}  — resolver cascade; fails if candidates tie
 - {kind:"createdBy", feature:"<plan op id>", entity:"face"|"edge"|"vertex", where?:{type,normal,offset,radius,near}}
 - {kind:"entities", ids:["..."]}  — explicit pick after a tie or from list_topology
+
+Sketch constraint and dimension args:
+- "l1", "l1.start", "c1.center", "ORIGIN"  — entities of this sketch
+- an IR Ref object (copy it from the IR)  — model geometry, resolved live; keeps the sketch at rung exact
+- "ext:<deterministicId>"  — explicit pick of a model entity after a tie, using an id from feedback
 
 Rules you must follow:
 - Never invent a dimension or expression. Use the IR values.
@@ -264,7 +269,7 @@ function describeFeedback(fb: Feedback): string {
   if (fb.errors.length) lines.push(`Errors:\n${fb.errors.join("\n")}`);
   if (fb.ambiguous) {
     lines.push(
-      `Ambiguous selection on op ${fb.ambiguous.opId}. Candidates (pick with {kind:"entities", ids:[...]}):\n` +
+      `Ambiguous selection on op ${fb.ambiguous.opId} for ${JSON.stringify(fb.ambiguous.selection)}. Candidates (pick with {kind:"entities", ids:[...]}, or "ext:<id>" when the selection is a sketch constraint or dimension argument):\n` +
         JSON.stringify(fb.ambiguous.candidates.map((c) => ({ id: c.candidate.id, type: c.candidate.type, score: c.score, center: c.candidate.center, midpoint: c.candidate.midpoint }))),
     );
   }

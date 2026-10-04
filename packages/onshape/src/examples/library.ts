@@ -15,7 +15,7 @@ export interface ExampleIndexEntry {
 }
 
 export const EXAMPLE_INDEX: ExampleIndexEntry[] = [
-  { sourceOp: "sketch", rung: "exact", notes: "Planar sketch: entities, common relations, driving dimensions. External (on-edge) refs are approximated until use/project is mapped." },
+  { sourceOp: "sketch", rung: "exact", notes: "Planar sketch: entities, common relations, driving dimensions. Args that are IR Refs to model edges/faces/vertices are resolved live and written as external references, so locating dimensions stay parametric." },
   { sourceOp: "extrude", rung: "exact", notes: "Boss/cut extrude: blind, through-all, up-to, mid-plane. Profile is a sketch region." },
   { sourceOp: "fillet", rung: "exact", notes: "Constant-radius fillet. Edges via irRef; ties come back as AmbiguousSelectionError." },
 ];

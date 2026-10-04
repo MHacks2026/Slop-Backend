@@ -35,8 +35,26 @@ export interface ComposedSketch {
   feature: BTMSketch;
   rung: Rung;
   notes: string[];
-  /** Args that referenced model geometry and were skipped. */
+  /** Args that referenced model geometry and could not be expressed (unresolved Ref objects). */
   skipped: Array<{ kind: "constraint" | "dimension"; id: string }>;
+}
+
+/**
+ * Prefix of a sketch argument that names Onshape model geometry by
+ * deterministic id: "ext:JHK" or "ext:JHK,JHL". The executor resolves IR
+ * Refs to this form before composing, so a dimension to a model edge becomes
+ * a live external reference in the sketch, exactly like the ORIGIN vertex.
+ */
+export const EXTERNAL_ARG_PREFIX = "ext:";
+
+export const externalArg = (ids: string[]): string => `${EXTERNAL_ARG_PREFIX}${ids.join(",")}`;
+
+/** Deterministic ids named by an "ext:" argument, or undefined for any other arg. */
+export function parseExternalArg(arg: SketchArg): string[] | undefined {
+  if (typeof arg !== "string" || !arg.startsWith(EXTERNAL_ARG_PREFIX)) return undefined;
+  const ids = arg.slice(EXTERNAL_ARG_PREFIX.length).split(",").filter(Boolean);
+  if (ids.length === 0) throw new SketchComposeError(`external argument "${arg}" names no entity`);
+  return ids;
 }
 
 /**
@@ -48,9 +66,15 @@ export interface ComposedSketch {
  * difference between the frames swaps horizontal and vertical constraints;
  * any other rotation is rejected.
  *
+ * Model geometry: an arg of the form "ext:<id>" (see `externalArg`) becomes
+ * an `external<Slot>` query, the same mechanism as ORIGIN, which built live.
+ * A raw IR Ref object reaching this function means the caller did not
+ * resolve it; it is skipped and the sketch is downgraded, never guessed.
+ *
  * UNVERIFIED JSON (confirm with `cli readback` of a UI-built sketch): line
  * segments, sketch points, constraint type names and parameter ids,
- * dimension parameter ids, external (origin) references.
+ * dimension parameter ids. External references to the origin are verified
+ * live; external references to model edges use the identical shape.
  */
 export function composeSketch(input: ComposeSketchInput): ComposedSketch {
   const notes: string[] = [];
@@ -72,7 +96,7 @@ export function composeSketch(input: ComposeSketchInput): ComposedSketch {
   input.constraints.forEach((c, i) => {
     const params = argParams(c.args, ids, input.originId);
     if (!params) {
-      notes.push(`constraint ${c.type} #${i} references model geometry; skipped (use/project edges not mapped yet)`);
+      notes.push(`constraint ${c.type} #${i} references model geometry that was not resolved; skipped`);
       skipped.push({ kind: "constraint", id: `#${i}` });
       rung = lower(rung, "approximated");
       return;
@@ -88,7 +112,7 @@ export function composeSketch(input: ComposeSketchInput): ComposedSketch {
   for (const d of input.dimensions) {
     const params = argParams(d.args, ids, input.originId);
     if (!params) {
-      notes.push(`dimension ${d.id} references model geometry; placed at fixed coordinates instead (locating dimensions to model edges not mapped yet)`);
+      notes.push(`dimension ${d.id} references model geometry that was not resolved; placed at fixed coordinates instead`);
       skipped.push({ kind: "dimension", id: d.id });
       rung = lower(rung, "approximated");
       continue;
@@ -202,7 +226,7 @@ const CONSTRAINT_TYPES: Record<ConstraintType, string> = {
 
 const SLOTS = ["First", "Second", "Third"] as const;
 
-/** Constraint parameters, or undefined if an arg cannot be expressed locally (model-geometry refs). */
+/** Constraint parameters, or undefined if an arg is an unresolved model-geometry Ref. */
 function argParams(args: SketchArg[], entityIds: Set<string>, originId: string | undefined): BTParameter[] | undefined {
   const params: BTParameter[] = [];
   for (let i = 0; i < args.length; i++) {
@@ -210,7 +234,10 @@ function argParams(args: SketchArg[], entityIds: Set<string>, originId: string |
     const slot = SLOTS[i];
     if (!slot) return undefined;
     if (typeof arg !== "string") return undefined;
-    if (arg === "ORIGIN") {
+    const external = parseExternalArg(arg);
+    if (external) {
+      params.push(queryList(`external${slot}`, [idQuery(external)]));
+    } else if (arg === "ORIGIN") {
       if (!originId) throw new SketchComposeError("constraint references ORIGIN but no origin id was supplied");
       params.push(queryList(`external${slot}`, [idQuery([originId])]));
     } else {

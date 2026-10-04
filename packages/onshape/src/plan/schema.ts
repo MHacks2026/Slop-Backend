@@ -101,6 +101,23 @@ const op = {
 
 const irDefs = (irSchema as { $defs: Record<string, unknown> }).$defs;
 
+/**
+ * Plan-level sketch argument: everything the IR allows, plus an explicit
+ * Onshape pick "ext:<deterministicId>[,<id>]" for a model entity. This is the
+ * sketch-argument counterpart of {kind:"entities"}: what the translator writes
+ * after a tie, using ids it saw in feedback or list_topology.
+ */
+const sketchArg = {
+  oneOf: [
+    ...((irDefs.SketchArg as { oneOf: unknown[] }).oneOf),
+    {
+      type: "string",
+      pattern: "^ext:[A-Za-z0-9_]+(,[A-Za-z0-9_]+)*$",
+      description: "Explicit Onshape deterministic id(s) of a model face, edge or vertex",
+    },
+  ],
+};
+
 /** Schema for one step proposal (the `submit_step` tool input). */
 export const stepProposalSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
@@ -117,7 +134,8 @@ export const stepProposalSchema = {
     ParameterValue: parameterValue,
     Op: op,
     // Reuse the IR's sketch vocabulary so sketches are written as they were read.
-    ...pick(irDefs, ["Id", "Vec2", "Vec3", "Unit", "Quantity", "DatumRef", "FeatureOutputRef", "FaceSignature", "EdgeSignature", "VertexSignature", "TopoRef", "Ref", "SketchEntityBase", "SketchEntity", "SketchArg", "Constraint", "Dimension"]),
+    ...pick(irDefs, ["Id", "Vec2", "Vec3", "Unit", "Quantity", "DatumRef", "FeatureOutputRef", "FaceSignature", "EdgeSignature", "VertexSignature", "TopoRef", "Ref", "SketchEntityBase", "SketchEntity", "Constraint", "Dimension"]),
+    SketchArg: sketchArg,
   },
 } as const;
 
