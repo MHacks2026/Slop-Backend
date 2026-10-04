@@ -179,7 +179,11 @@ export async function buildDocument(ir: Document, api: OnshapeApi, options: Buil
       rec.featureStatus = last?.featureStatus;
       rec.notes = execution.results.flatMap((r) => r.notes);
       rec.refs = execution.results.flatMap((r) => r.selections);
-      rec.rung = worstRung(checked.ops.map((o) => o.rung));
+      // The planner's rung is a claim; the executor reports what it could realise. Keep the worse of the two.
+      const claimed = worstRung(checked.ops.map((o) => o.rung));
+      const achieved = worstRung(execution.results.flatMap((r) => (r.achievedRung ? [r.achievedRung] : [])));
+      rec.rung = worstRung([claimed, achieved]);
+      if (rec.rung !== claimed) rec.notes.push(`planner claimed rung "${claimed}" but the executor realised "${rec.rung}"`);
       rec.enhancements = checked.ops.filter((o) => o.enhancement).map((o) => o.intent);
       rec.reasoning = checked.reasoning;
 

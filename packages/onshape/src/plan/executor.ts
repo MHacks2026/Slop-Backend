@@ -1,4 +1,4 @@
-import type { DatumName, Document, EntityType, Feature, Parameter, Ref, TopoRef } from "@slop/ir";
+import type { DatumName, Document, EntityType, Feature, Parameter, Ref, Rung, TopoRef } from "@slop/ir";
 import type { OnshapeApi } from "../client/api.ts";
 import type { BTFeature, BTMFeature, BTParameter, BTQuery, DocumentRef } from "../client/types.ts";
 import { boolParam, enumParam, idQuery, quantity, queryList, sketchRegionQuery, stringParam } from "../expression.ts";
@@ -57,6 +57,12 @@ export interface OpResult {
   featureStatus?: string;
   notes: string[];
   selections: SelectionRecord[];
+  /**
+   * Fidelity the executor could actually realise, when lower than the op
+   * claimed (e.g. a sketch whose model-referencing dimensions were skipped).
+   * The planner's own rung is a claim; this is the measurement.
+   */
+  achievedRung?: Rung;
 }
 
 export interface StepExecution {
@@ -159,6 +165,7 @@ export class Executor implements StepContext {
     if (this.onshapeIds.has(op.id)) throw new ExecutionError(op.id, `plan op id "${op.id}" already used`);
     const selections: SelectionRecord[] = [];
     const notes: string[] = [];
+    let achievedRung: Rung | undefined;
     let feature: BTFeature;
 
     switch (op.op) {
@@ -197,6 +204,7 @@ export class Executor implements StepContext {
         notes.push(...composed.notes);
         feature = composed.feature;
         this.frames.set(op.id, frame);
+        if (composed.rung !== "exact") achievedRung = composed.rung;
         break;
       }
 
@@ -239,10 +247,10 @@ export class Executor implements StepContext {
     }
     if (status && status !== "OK" && status !== "WARNING") {
       // Leave the id registered so undo() can delete it.
-      const result: OpResult = { opId: op.id, onshapeFeatureId, featureStatus: status, notes, selections };
+      const result: OpResult = { opId: op.id, onshapeFeatureId, featureStatus: status, notes, selections, ...(achievedRung ? { achievedRung } : {}) };
       throw Object.assign(new ExecutionError(op.id, `Onshape regeneration status ${status}`), { partial: result });
     }
-    return { opId: op.id, onshapeFeatureId, ...(status ? { featureStatus: status } : {}), notes, selections };
+    return { opId: op.id, onshapeFeatureId, ...(status ? { featureStatus: status } : {}), notes, selections, ...(achievedRung ? { achievedRung } : {}) };
   }
 
   private async buildParameter(opId: string, p: ParameterValue): Promise<{ parameter: BTParameter; selections: SelectionRecord[] }> {

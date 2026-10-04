@@ -1,0 +1,483 @@
+{
+  "planVersion": "0.1.0",
+  "irIntentHash": "bc601fc2022ab9857dbafd4d84962efdf5bfa303fbd392667ecbc6aaea297296",
+  "provenance": {
+    "planner": "claude",
+    "model": "claude-opus-5-5",
+    "promptVersion": "0.1.0"
+  },
+  "steps": [
+    {
+      "irFeature": "f1",
+      "ops": [
+        {
+          "op": "createSketch",
+          "id": "f1",
+          "intent": "Base 50x30 mm rectangle on Front plane anchored at origin",
+          "rung": "exact",
+          "name": "Sketch1",
+          "irSketch": "f1",
+          "plane": {
+            "kind": "datum",
+            "name": "FRONT"
+          },
+          "entities": [
+            {
+              "id": "l1",
+              "type": "line",
+              "construction": false,
+              "p0": [
+                0,
+                0
+              ],
+              "p1": [
+                0.05,
+                0
+              ]
+            },
+            {
+              "id": "l2",
+              "type": "line",
+              "construction": false,
+              "p0": [
+                0.05,
+                0
+              ],
+              "p1": [
+                0.05,
+                0.03
+              ]
+            },
+            {
+              "id": "l3",
+              "type": "line",
+              "construction": false,
+              "p0": [
+                0.05,
+                0.03
+              ],
+              "p1": [
+                0,
+                0.03
+              ]
+            },
+            {
+              "id": "l4",
+              "type": "line",
+              "construction": false,
+              "p0": [
+                0,
+                0.03
+              ],
+              "p1": [
+                0,
+                0
+              ]
+            }
+          ],
+          "constraints": [
+            {
+              "type": "horizontal",
+              "args": [
+                "l1"
+              ]
+            },
+            {
+              "type": "horizontal",
+              "args": [
+                "l3"
+              ]
+            },
+            {
+              "type": "vertical",
+              "args": [
+                "l2"
+              ]
+            },
+            {
+              "type": "vertical",
+              "args": [
+                "l4"
+              ]
+            },
+            {
+              "type": "coincident",
+              "args": [
+                "l1.start",
+                "ORIGIN"
+              ]
+            },
+            {
+              "type": "coincident",
+              "args": [
+                "l1.end",
+                "l2.start"
+              ]
+            },
+            {
+              "type": "coincident",
+              "args": [
+                "l2.end",
+                "l3.start"
+              ]
+            },
+            {
+              "type": "coincident",
+              "args": [
+                "l3.end",
+                "l4.start"
+              ]
+            },
+            {
+              "type": "coincident",
+              "args": [
+                "l4.end",
+                "l1.start"
+              ]
+            }
+          ],
+          "dimensions": [
+            {
+              "id": "D1@Sketch1",
+              "type": "distance",
+              "args": [
+                "l1"
+              ],
+              "value": {
+                "expr": "50 mm",
+                "value": 0.05,
+                "unit": "m"
+              },
+              "driving": true
+            },
+            {
+              "id": "D2@Sketch1",
+              "type": "distance",
+              "args": [
+                "l2"
+              ],
+              "value": {
+                "expr": "30 mm",
+                "value": 0.03,
+                "unit": "m"
+              },
+              "driving": true
+            }
+          ]
+        }
+      ],
+      "reasoning": "Direct 1:1 mapping of the 50x30 mm rectangle on FRONT. The corner is anchored at the origin, and the IR's own constraints and driving dimensions are kept.",
+      "attempts": 1
+    },
+    {
+      "irFeature": "f2",
+      "ops": [
+        {
+          "op": "createFeature",
+          "id": "f2",
+          "name": "Boss-Extrude1",
+          "intent": "Extrude the region of f1 10 mm blind as a new solid body",
+          "rung": "exact",
+          "featureType": "extrude",
+          "parameters": [
+            {
+              "id": "bodyType",
+              "enum": {
+                "name": "ExtendedToolBodyType",
+                "value": "SOLID"
+              }
+            },
+            {
+              "id": "operationType",
+              "enum": {
+                "name": "NewBodyOperationType",
+                "value": "NEW"
+              }
+            },
+            {
+              "id": "entities",
+              "selections": [
+                {
+                  "kind": "sketchRegion",
+                  "sketch": "f1"
+                }
+              ]
+            },
+            {
+              "id": "endBound",
+              "enum": {
+                "name": "BoundingType",
+                "value": "BLIND"
+              }
+            },
+            {
+              "id": "depth",
+              "quantity": "10 mm"
+            },
+            {
+              "id": "oppositeDirection",
+              "boolean": false
+            }
+          ]
+        }
+      ],
+      "reasoning": "Direct 1:1 mapping: new-body blind extrude of sketch f1's region, 10 mm depth from IR, no flip.",
+      "attempts": 1
+    },
+    {
+      "irFeature": "f3",
+      "ops": [
+        {
+          "op": "createSketch",
+          "id": "f3",
+          "name": "Sketch2",
+          "intent": "Sketch a 5 mm diameter circle on the top cap face of the f2 extrude, located 25 mm from the left edge and 15 mm from the front edge.",
+          "rung": "exact",
+          "enhancement": false,
+          "plane": {
+            "kind": "irRef",
+            "irFeature": "f3",
+            "path": "plane"
+          },
+          "irSketch": "f3",
+          "entities": [
+            {
+              "id": "c1",
+              "type": "circle",
+              "construction": false,
+              "center": [
+                0.025,
+                0.015
+              ],
+              "r": 0.0025
+            }
+          ],
+          "constraints": [],
+          "dimensions": [
+            {
+              "id": "D1@Sketch2",
+              "type": "diameter",
+              "args": [
+                "c1"
+              ],
+              "value": {
+                "expr": "5 mm",
+                "value": 0.005,
+                "unit": "m"
+              },
+              "driving": true
+            },
+            {
+              "id": "D2@Sketch2",
+              "type": "distance",
+              "args": [
+                "c1.center",
+                {
+                  "kind": "topo",
+                  "entity": "edge",
+                  "createdBy": "f2",
+                  "role": "edge:capEnd|sideWall:l4",
+                  "srcPersistId": "sw:persist:0002",
+                  "signature": {
+                    "curve": "line",
+                    "midpoint": [
+                      0,
+                      0.015,
+                      0.01
+                    ],
+                    "length": 0.03,
+                    "direction": [
+                      0,
+                      1,
+                      0
+                    ]
+                  }
+                }
+              ],
+              "value": {
+                "expr": "25 mm",
+                "value": 0.025,
+                "unit": "m"
+              },
+              "driving": true
+            },
+            {
+              "id": "D3@Sketch2",
+              "type": "distance",
+              "args": [
+                "c1.center",
+                {
+                  "kind": "topo",
+                  "entity": "edge",
+                  "createdBy": "f2",
+                  "role": "edge:capEnd|sideWall:l1",
+                  "srcPersistId": "sw:persist:0003",
+                  "signature": {
+                    "curve": "line",
+                    "midpoint": [
+                      0.025,
+                      0,
+                      0.01
+                    ],
+                    "length": 0.05,
+                    "direction": [
+                      1,
+                      0,
+                      0
+                    ]
+                  }
+                }
+              ],
+              "value": {
+                "expr": "15 mm",
+                "value": 0.015,
+                "unit": "m"
+              },
+              "driving": true
+            }
+          ]
+        }
+      ],
+      "reasoning": "Direct mapping: the plane is the live capEnd face of f2 (z=0.01, normal +Z). There's one circle with the 5 mm diameter from the source, and its centre is placed by the two source distance dimensions to f2's edges (25 mm from the x=0 edge, 15 mm from the y=0 edge). No values or relations are invented, so the rung is exact.",
+      "attempts": 1
+    },
+    {
+      "irFeature": "f4",
+      "ops": [
+        {
+          "op": "createFeature",
+          "id": "f4",
+          "name": "Cut-Extrude1",
+          "intent": "Remove material through all using the f3 sketch region, flipped direction as in source",
+          "rung": "exact",
+          "featureType": "extrude",
+          "parameters": [
+            {
+              "id": "bodyType",
+              "enum": {
+                "name": "ExtendedToolBodyType",
+                "value": "SOLID"
+              }
+            },
+            {
+              "id": "operationType",
+              "enum": {
+                "name": "NewBodyOperationType",
+                "value": "REMOVE"
+              }
+            },
+            {
+              "id": "entities",
+              "selections": [
+                {
+                  "kind": "sketchRegion",
+                  "sketch": "f3"
+                }
+              ]
+            },
+            {
+              "id": "endBound",
+              "enum": {
+                "name": "BoundingType",
+                "value": "THROUGH_ALL"
+              }
+            },
+            {
+              "id": "oppositeDirection",
+              "boolean": true
+            }
+          ]
+        }
+      ],
+      "reasoning": "Direct mapping: SW Cut-Extrude Through All with flip maps to an Onshape extrude in REMOVE mode, THROUGH_ALL end, with oppositeDirection=true, profiled by the live f3 sketch region.",
+      "attempts": 1
+    },
+    {
+      "irFeature": "f5",
+      "ops": [
+        {
+          "op": "createFeature",
+          "id": "f5",
+          "name": "Fillet1",
+          "intent": "Round the 2.5 mm-radius circular edge where the f4 hole wall meets the f2 top face with a 2 mm fillet.",
+          "rung": "exact",
+          "featureType": "fillet",
+          "parameters": [
+            {
+              "id": "entities",
+              "selections": [
+                {
+                  "kind": "irRef",
+                  "irFeature": "f5",
+                  "path": "edges[0]"
+                }
+              ]
+            },
+            {
+              "id": "radius",
+              "quantity": "2 mm"
+            },
+            {
+              "id": "tangentPropagation",
+              "boolean": true
+            }
+          ]
+        }
+      ],
+      "reasoning": "Direct 1:1 mapping of the SolidWorks fillet: single circular edge (r=2.5 mm, center [25,15,10] mm) created by f4 at the f2 cap, radius 2 mm from IR, tangent propagation on. Live irRef resolves via signature/probe.",
+      "attempts": 1
+    }
+  ],
+  "behaviorTests": [
+    {
+      "target": "D1@Sketch1",
+      "expression": "D1@Sketch1 = 60 mm",
+      "expectation": "Rebuild succeeds; base profile length grows to 60 mm; Sketch2 feature (hole/boss) stays on its face at its dimensioned 25/15 mm location; volume increases."
+    },
+    {
+      "target": "D2@Sketch1",
+      "expression": "D2@Sketch1 = 40 mm",
+      "expectation": "Rebuild succeeds; base profile width grows to 40 mm; Sketch2 feature keeps its 25/15 mm offsets; no references lost."
+    },
+    {
+      "target": "D1@Sketch1",
+      "expression": "D1@Sketch1 = 40 mm",
+      "expectation": "Rebuild succeeds; Sketch2 feature at 25 mm offset (radius 5) still lies fully inside the 40 mm edge; volume decreases."
+    },
+    {
+      "target": "D2@Sketch1",
+      "expression": "D2@Sketch1 = 25 mm",
+      "expectation": "Rebuild succeeds; Sketch2 feature at 15 mm offset with 5 mm size still lies inside the 25 mm width."
+    },
+    {
+      "target": "D1@Sketch2",
+      "expression": "D1@Sketch2 = 8 mm",
+      "expectation": "Rebuild succeeds; only the Sketch2 feature size changes; its center stays at 25/15 mm; base block unchanged."
+    },
+    {
+      "target": "D1@Sketch2",
+      "expression": "D1@Sketch2 = 3 mm",
+      "expectation": "Rebuild succeeds; Sketch2 feature shrinks; face count unchanged; position unchanged."
+    },
+    {
+      "target": "D2@Sketch2",
+      "expression": "D2@Sketch2 = 20 mm",
+      "expectation": "Rebuild succeeds; Sketch2 feature translates 5 mm along the first axis; volume unchanged versus nominal."
+    },
+    {
+      "target": "D3@Sketch2",
+      "expression": "D3@Sketch2 = 10 mm",
+      "expectation": "Rebuild succeeds; Sketch2 feature translates 5 mm along the second axis; volume unchanged versus nominal."
+    },
+    {
+      "target": "D1@Sketch1,D2@Sketch1",
+      "expression": "D1@Sketch1 = 100 mm; D2@Sketch1 = 60 mm",
+      "expectation": "Rebuild succeeds; base scales; Sketch2 feature stays anchored at 25/15 mm from its reference edges (not centered), confirming the dimension scheme is live."
+    },
+    {
+      "target": "D2@Sketch2,D3@Sketch2",
+      "expression": "D2@Sketch2 = 25 mm; D3@Sketch2 = 15 mm (restore nominal after perturbations)",
+      "expectation": "Model returns to its original volume and topology exactly, so the edits had no lasting effect."
+    }
+  ]
+}

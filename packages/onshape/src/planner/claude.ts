@@ -67,7 +67,7 @@ export class ClaudePlanner implements Planner {
       throw new Error("missing ANTHROPIC_API_KEY. Copy packages/onshape/.env.example to packages/onshape/.env and fill it in.");
     }
     this.fetchImpl = cfg.fetchImpl ?? fetch;
-    this.model = cfg.model ?? "claude-sonnet-4-6";
+    this.model = cfg.model ?? "claude-opus-5-5";
     this.url = `${(cfg.baseUrl ?? "https://api.anthropic.com").replace(/\/+$/, "")}/v1/messages`;
     this.provenance = { planner: "claude" as const, model: this.model, promptVersion: CLAUDE_PROMPT_VERSION };
   }
