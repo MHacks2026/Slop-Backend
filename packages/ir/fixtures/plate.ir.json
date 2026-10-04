@@ -216,7 +216,7 @@
         },
         "evidence": {
           "bodyCount": 1,
-          "volume": 1.5e-05,
+          "volume": 0.000015,
           "area": 0.0046,
           "centerOfMass": [
             0.025,
@@ -330,12 +330,12 @@
                 "kind": "topo",
                 "entity": "edge",
                 "createdBy": "f2",
-                "role": "edge:capEnd|sideWall:l4",
+                "role": "edge:capEnd|sideWall:l2",
                 "srcPersistId": "sw:persist:0002",
                 "signature": {
                   "curve": "line",
                   "midpoint": [
-                    0,
+                    0.05,
                     0.015,
                     0.01
                   ],
@@ -415,7 +415,7 @@
         },
         "evidence": {
           "bodyCount": 1,
-          "volume": 1.4803650459e-05,
+          "volume": 0.000014803650459,
           "area": 0.00471780972451,
           "centerOfMass": [
             0.025,
@@ -483,7 +483,7 @@
         ],
         "evidence": {
           "bodyCount": 1,
-          "volume": 1.4787757144e-05,
+          "volume": 0.000014787757144,
           "area": 0.004706105199205,
           "bbox": {
             "min": [
@@ -502,9 +502,181 @@
             "plane": 6,
             "cylinder": 1,
             "torus": 1
-          }
+          },
+          "centerOfMass": [
+            0.025,
+            0.015,
+            0.004995106325957
+          ]
         }
       }
     ]
-  }
+  },
+  "behaviorEvidence": [
+    {
+      "target": "D1@Sketch1",
+      "expression": "55 mm",
+      "expectation": "plate widens by 5 mm; the hole, dimensioned 25 mm from the right edge, moves with that edge (centre of mass x shifts); hole and fillet survive",
+      "evidence": {
+        "bodyCount": 1,
+        "volume": 0.00001628775714364,
+        "area": 0.005106105199205,
+        "centerOfMass": [
+          0.02746742294619,
+          0.015,
+          0.00499555700256
+        ],
+        "bbox": {
+          "min": [
+            0,
+            0,
+            0
+          ],
+          "max": [
+            0.055,
+            0.03,
+            0.01
+          ]
+        },
+        "faceCount": 8,
+        "faceTypes": {
+          "plane": 6,
+          "cylinder": 1,
+          "torus": 1
+        }
+      }
+    },
+    {
+      "target": "D2@Sketch1",
+      "expression": "33 mm",
+      "expectation": "plate deepens by 3 mm; the hole stays 15 mm from the bottom edge",
+      "evidence": {
+        "bodyCount": 1,
+        "volume": 0.00001628775714364,
+        "area": 0.005066105199205,
+        "centerOfMass": [
+          0.025,
+          0.01651954623229,
+          0.00499555700256
+        ],
+        "bbox": {
+          "min": [
+            0,
+            0,
+            0
+          ],
+          "max": [
+            0.05,
+            0.033,
+            0.01
+          ]
+        },
+        "faceCount": 8,
+        "faceTypes": {
+          "plane": 6,
+          "cylinder": 1,
+          "torus": 1
+        }
+      }
+    },
+    {
+      "target": "D1@Sketch2",
+      "expression": "5.5 mm",
+      "expectation": "hole widens in place; the fillet follows the new rim",
+      "evidence": {
+        "bodyCount": 1,
+        "volume": 0.00001474517535696,
+        "area": 0.00471221809865,
+        "centerOfMass": [
+          0.025,
+          0.015,
+          0.004994675817288
+        ],
+        "bbox": {
+          "min": [
+            0,
+            0,
+            0
+          ],
+          "max": [
+            0.05,
+            0.03,
+            0.01
+          ]
+        },
+        "faceCount": 8,
+        "faceTypes": {
+          "plane": 6,
+          "cylinder": 1,
+          "torus": 1
+        }
+      }
+    },
+    {
+      "target": "D2@Sketch2",
+      "expression": "27.5 mm",
+      "expectation": "hole moves 2.5 mm further from the right edge; volume and area unchanged",
+      "evidence": {
+        "bodyCount": 1,
+        "volume": 0.00001478775714364,
+        "area": 0.004706105199205,
+        "centerOfMass": [
+          0.02503588151575,
+          0.015,
+          0.004995106325957
+        ],
+        "bbox": {
+          "min": [
+            0,
+            0,
+            0
+          ],
+          "max": [
+            0.05,
+            0.03,
+            0.01
+          ]
+        },
+        "faceCount": 8,
+        "faceTypes": {
+          "plane": 6,
+          "cylinder": 1,
+          "torus": 1
+        }
+      }
+    },
+    {
+      "target": "D3@Sketch2",
+      "expression": "16.5 mm",
+      "expectation": "hole moves 1.5 mm further from the bottom edge; volume and area unchanged",
+      "evidence": {
+        "bodyCount": 1,
+        "volume": 0.00001478775714364,
+        "area": 0.004706105199205,
+        "centerOfMass": [
+          0.025,
+          0.01497847109055,
+          0.004995106325957
+        ],
+        "bbox": {
+          "min": [
+            0,
+            0,
+            0
+          ],
+          "max": [
+            0.05,
+            0.03,
+            0.01
+          ]
+        },
+        "faceCount": 8,
+        "faceTypes": {
+          "plane": 6,
+          "cylinder": 1,
+          "torus": 1
+        }
+      }
+    }
+  ]
 }

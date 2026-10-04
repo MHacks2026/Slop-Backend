@@ -2,7 +2,7 @@
 /**
  * Phase 0 CLI. Needs packages/onshape/.env (see .env.example).
  *
- *   npm run cli -- build <ir.json> [--planner rules|claude|replay] [--plan accepted.json] [--name N] [--out report.json] [--continue] [--target did/wid/eid] [--max-attempts N]
+ *   npm run cli -- build <ir.json> [--planner rules|claude|replay] [--plan accepted.json] [--name N] [--out report.json] [--continue] [--target did/wid/eid] [--max-attempts N] [--no-behavior]
  *   npm run cli -- readback <did> <wid> <eid> [--out features.json]
  *   npm run cli -- planes <did> <wid> <eid>
  *   npm run cli -- massprops <did> <wid> <eid>
@@ -34,6 +34,8 @@ const { values, positionals } = parseArgs({
     planner: { type: "string", default: "rules" },
     plan: { type: "string" },
     "max-attempts": { type: "string" },
+    /** Skip the Level 3 behaviour tests after the build (each costs a few API calls). */
+    "no-behavior": { type: "boolean", default: false },
   },
 });
 
@@ -86,6 +88,7 @@ async function main(): Promise<void> {
         ...(values["max-attempts"] ? { maxAttempts: Number(values["max-attempts"]) } : {}),
         stopOnDivergence: !values.continue,
         bodyStats: !values["no-stats"],
+        behavior: !values["no-behavior"],
         log: (l) => console.error(l),
       });
       if (values.out) {

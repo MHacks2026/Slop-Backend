@@ -1,9 +1,10 @@
 import { hashDocument, type Document, type FeatureOp, type Rung } from "@slop/ir";
+import { normalizeExpression, runBehaviorTests, type BehaviorCase, type BehaviorResult } from "./behavior.ts";
 import type { OnshapeApi } from "./client/api.ts";
 import type { DocumentRef } from "./client/types.ts";
 import { queryBodyStats } from "./fs/topology.ts";
 import { AmbiguousSelectionError, DATUM_REMAP, ExecutionError, Executor, type SelectionRecord } from "./plan/executor.ts";
-import type { BuildPlan, PlanStep } from "./plan/types.ts";
+import type { BehaviorTest, BuildPlan, PlanStep } from "./plan/types.ts";
 import { PlanValidationError, validateStepProposal } from "./plan/validate.ts";
 import { RulePlanner } from "./planner/rules.ts";
 import type { Feedback, Planner, StepProposal, StepRequest } from "./planner/types.ts";
@@ -33,6 +34,11 @@ export interface BuildOptions {
   maxAttempts?: number;
   /** Ask Onshape for a shaded view after each accepted solid (costs an API call). */
   captureView?: boolean;
+  /**
+   * Run Level 3 behaviour tests after a complete build: change each driving
+   * dimension in Onshape, measure, restore (architecture doc §9). Default true.
+   */
+  behavior?: boolean;
   log?: (line: string) => void;
 }
 
@@ -72,6 +78,8 @@ export interface BuildReport {
   features: FeatureRecord[];
   /** The accepted plan: store this and replay it to reproduce the migration. */
   plan: BuildPlan;
+  /** Level 3 results; empty when the build stopped early or behaviour tests were disabled. */
+  behavior: BehaviorResult[];
   summary: {
     byRung: Partial<Record<Rung, number>>;
     built: number;
@@ -80,6 +88,11 @@ export interface BuildReport {
     checksPassed: number;
     checksFailed: number;
     enhancements: number;
+    behaviorPassed: number;
+    /** Failed comparisons plus regeneration failures. */
+    behaviorFailed: number;
+    /** Ran without source evidence, or could not be run. */
+    behaviorUnverified: number;
     llmCalls: number;
     inputTokens: number;
     outputTokens: number;
@@ -239,6 +252,18 @@ export async function buildDocument(ir: Document, api: OnshapeApi, options: Buil
   }
 
   const behaviorTests = stoppedEarly ? [] : await planner.proposeBehaviorTests(ir, steps);
+
+  // Level 3: only on a complete build, and only against the document as built.
+  let behavior: BehaviorResult[] = [];
+  if (!stoppedEarly && options.behavior !== false) {
+    const nominal = [...ir.partStudio.features].reverse().find((f) => f.evidence)?.evidence;
+    behavior = await runBehaviorTests(api, ref, behaviorCases(ir, behaviorTests), nominal, {
+      ...(options.tolerances ? { tolerances: options.tolerances } : {}),
+      ...(options.bodyStats === false ? { bodyStats: false } : {}),
+      log,
+    });
+  }
+
   const usage = planner.usage();
   const summary = summarize(records);
   return {
@@ -256,13 +281,39 @@ export async function buildDocument(ir: Document, api: OnshapeApi, options: Buil
       steps,
       behaviorTests,
     },
+    behavior,
     summary: {
       ...summary,
+      behaviorPassed: behavior.filter((b) => b.status === "passed").length,
+      behaviorFailed: behavior.filter((b) => b.status === "failed" || b.status === "regenerationFailed").length,
+      behaviorUnverified: behavior.filter((b) => b.status === "unverified" || b.status === "unsupported").length,
       llmCalls: usage.calls,
       inputTokens: usage.inputTokens,
       outputTokens: usage.outputTokens,
     },
   };
+}
+
+/**
+ * What to perturb: every change the extractor recorded source evidence for
+ * (verified), then the planner's proposals not already covered (unverified:
+ * they prove regeneration, not equivalence).
+ */
+function behaviorCases(ir: Document, proposals: BehaviorTest[]): BehaviorCase[] {
+  const cases: BehaviorCase[] = (ir.behaviorEvidence ?? []).map((b) => ({
+    target: b.target,
+    expression: b.expression,
+    expectation: b.expectation ?? "regenerates; Level 1 metrics match the source after the same change",
+    evidence: b.evidence,
+  }));
+  const seen = new Set(cases.map((c) => `${c.target}=${normalizeExpression(c.expression)}`));
+  for (const t of proposals) {
+    const key = `${t.target}=${normalizeExpression(t.expression)}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    cases.push(t);
+  }
+  return cases;
 }
 
 function feedbackFromErrors(errors: string[], summary: string): Feedback {

@@ -31,8 +31,8 @@ const sketch2 = (doc: Document = plate): SketchFeature => doc.partStudio.feature
 const param = <T>(c: { parameters: Array<{ parameterId: string }> }, id: string): T => c.parameters.find((p) => p.parameterId === id) as T;
 
 // In the fake plate world, the top face's edges are E_top0..3 going around the
-// rectangle from the origin: E_top0 lies on y = 0, E_top3 on x = 0.
-const LEFT_EDGE = "E_top3";
+// rectangle from the origin: E_top0 lies on y = 0, E_top1 on x = W (the hole is dimensioned from the right edge).
+const RIGHT_EDGE = "E_top1";
 const BOTTOM_EDGE = "E_top0";
 
 test("locating dimensions to model edges become live external references and keep the sketch at rung exact", async () => {
@@ -47,7 +47,7 @@ test("locating dimensions to model edges become live external references and kee
 
   // Each model-edge argument was resolved by geometric signature, uniquely.
   const refs = Object.fromEntries(f3.refs.map((r) => [r.parameterId, r]));
-  assert.deepEqual(refs["D2@Sketch2"]!.deterministicIds, [LEFT_EDGE]);
+  assert.deepEqual(refs["D2@Sketch2"]!.deterministicIds, [RIGHT_EDGE]);
   assert.deepEqual(refs["D3@Sketch2"]!.deterministicIds, [BOTTOM_EDGE]);
   for (const id of ["D2@Sketch2", "D3@Sketch2"]) {
     assert.equal(refs[id]!.resolver, "signature");
@@ -60,7 +60,7 @@ test("locating dimensions to model edges become live external references and kee
   const sk2 = api.added.find((a) => a.feature.name === "Sketch2")!.feature as BTMSketch;
   assert.deepEqual(sk2.constraints.map((c) => c.constraintType), ["DIAMETER", "DISTANCE", "DISTANCE"]);
   const [, d2, d3] = sk2.constraints;
-  for (const [c, edge] of [[d2!, LEFT_EDGE], [d3!, BOTTOM_EDGE]] as const) {
+  for (const [c, edge] of [[d2!, RIGHT_EDGE], [d3!, BOTTOM_EDGE]] as const) {
     assert.equal(param<BTParameterString>(c, "localFirst").value, "c1.center");
     assert.deepEqual((param<BTParameterQueryList>(c, "externalSecond").queries[0] as BTIndividualQuery).deterministicIds, [edge]);
   }
@@ -71,7 +71,7 @@ test("locating dimensions to model edges become live external references and kee
   assert.equal(report.summary.byRung.exact, 5);
   assert.equal(report.summary.byRung.approximated, undefined);
   const md = renderMarkdown(report);
-  assert.match(md, /Ref `f3\.D2@Sketch2`: \{"kind":"irRef","irFeature":"f3","path":"dimensions\[1\]\.args\[1\]"\} -> E_top3 via signature/);
+  assert.match(md, /Ref `f3\.D2@Sketch2`: \{"kind":"irRef","irFeature":"f3","path":"dimensions\[1\]\.args\[1\]"\} -> E_top1 via signature/);
   assert.match(md, /Ref `f3\.D3@Sketch2`: .* -> E_top0 via signature/);
 });
 
@@ -100,18 +100,18 @@ test("the planner resolves a tie with an explicit ext:<id> argument, which is re
   // The explicit pick is on the record with its own resolver, so the report is honest about who chose.
   const d2 = f3.refs.find((r) => r.parameterId === "D2@Sketch2")!;
   assert.equal(d2.resolver, "explicit");
-  assert.deepEqual(d2.deterministicIds, [LEFT_EDGE]);
-  assert.deepEqual(d2.selection, { kind: "entities", ids: [LEFT_EDGE] });
+  assert.deepEqual(d2.deterministicIds, [RIGHT_EDGE]);
+  assert.deepEqual(d2.selection, { kind: "entities", ids: [RIGHT_EDGE] });
 
   // The sketch Onshape received still references the edge live.
   const sk2 = api.added.find((a) => a.feature.name === "Sketch2")!.feature as BTMSketch;
   const ext = param<BTParameterQueryList>(sk2.constraints[1]!, "externalSecond");
-  assert.deepEqual((ext.queries[0] as BTIndividualQuery).deterministicIds, [LEFT_EDGE]);
+  assert.deepEqual((ext.queries[0] as BTIndividualQuery).deterministicIds, [RIGHT_EDGE]);
 
-  // The accepted plan carries "ext:E_top3" and passes plan validation on replay.
+  // The accepted plan carries "ext:E_top1" and passes plan validation on replay.
   const replay = await buildDocument(ir, new FakeOnshape(plateWorld(plate)), { planner: new ReplayPlanner(report.plan, hashDocument(ir).intent) });
   assert.equal(replay.summary.failed, 0);
-  assert.deepEqual(replay.features.find((f) => f.irId === "f3")!.refs.find((r) => r.parameterId === "D2@Sketch2")!.deterministicIds, [LEFT_EDGE]);
+  assert.deepEqual(replay.features.find((f) => f.irId === "f3")!.refs.find((r) => r.parameterId === "D2@Sketch2")!.deterministicIds, [RIGHT_EDGE]);
 });
 
 test("the plan schema accepts ext:<id> sketch arguments and rejects malformed ones", () => {
@@ -146,14 +146,14 @@ test("composeSketch writes ext: arguments as external queries and still refuses 
 
   const resolved = composeSketch({
     ...base,
-    dimensions: s.dimensions.map((d, i) => (i === 0 ? d : { ...d, args: [d.args[0]!, externalArg([i === 1 ? LEFT_EDGE : BOTTOM_EDGE])] })),
+    dimensions: s.dimensions.map((d, i) => (i === 0 ? d : { ...d, args: [d.args[0]!, externalArg([i === 1 ? RIGHT_EDGE : BOTTOM_EDGE])] })),
   });
   assert.equal(resolved.rung, "exact");
   assert.deepEqual(resolved.skipped, []);
   assert.deepEqual(resolved.notes, []);
   const d2 = resolved.feature.constraints[1]!;
   assert.equal(d2.constraintType, "DISTANCE");
-  assert.deepEqual((param<BTParameterQueryList>(d2, "externalSecond").queries[0] as BTIndividualQuery).deterministicIds, [LEFT_EDGE]);
+  assert.deepEqual((param<BTParameterQueryList>(d2, "externalSecond").queries[0] as BTIndividualQuery).deterministicIds, [RIGHT_EDGE]);
 
   // The raw IR Ref (what the executor receives before resolving) is never turned into a coordinate guess.
   const unresolved = composeSketch({ ...base, dimensions: s.dimensions });
@@ -189,7 +189,7 @@ function ambiguousPlate(): Document {
 /**
  * Stands in for the LLM: proposes the direct mapping, and when the executor
  * reports a tie, reads the candidate list (which carries each edge's
- * midpoint) and picks the 30 mm edge on the x = 0 side of the top face.
+ * midpoint) and picks the 30 mm edge on the x = W side of the top face.
  */
 class PicksEdgeAfterTie implements Planner {
   readonly provenance = { planner: "claude" as const, model: "scripted", promptVersion: "test" };
@@ -204,7 +204,7 @@ class PicksEdgeAfterTie implements Planner {
     if (!feedback.ambiguous) return undefined;
     this.ties++;
     const { opId, selection, candidates } = feedback.ambiguous;
-    const pick = candidates.find((c) => c.candidate.midpoint && Math.abs(c.candidate.midpoint[0]) < 1e-9 && Math.abs(c.candidate.midpoint[2] - 0.01) < 1e-9);
+    const pick = candidates.find((c) => c.candidate.midpoint && Math.abs(c.candidate.midpoint[0] - 0.05) < 1e-9 && Math.abs(c.candidate.midpoint[2] - 0.01) < 1e-9);
     if (!pick) return undefined;
     const path = selection.kind === "irRef" ? selection.path : "";
     const m = /dimensions\[(\d+)\]\.args\[(\d+)\]/.exec(path);
@@ -212,7 +212,7 @@ class PicksEdgeAfterTie implements Planner {
     const ops = structuredClone(previous.ops);
     const op = ops.find((o) => o.id === opId) as CreateSketchOp;
     op.dimensions[Number(m[1])]!.args[Number(m[2])] = `ext:${pick.candidate.id}`;
-    return { ops, reasoning: `picked ${pick.candidate.id}: the 30 mm edge at x = 0 on the top face, which the source dimension measures from` };
+    return { ops, reasoning: `picked ${pick.candidate.id}: the 30 mm edge at x = W on the top face, which the source dimension measures from` };
   }
 
   proposeBehaviorTests(ir: Document) {

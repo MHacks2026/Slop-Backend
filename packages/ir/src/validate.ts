@@ -54,6 +54,7 @@ function formatAjvError(e: ErrorObject): Issue {
  *  6. Sketch entity ids are unique per sketch; string constraint/dimension
  *     args must name an entity of that sketch or ORIGIN.
  *  7. `Quantity.parameter` must name a declared parameter.
+ *  8. `behaviorEvidence[].target` must name a sketch dimension or a parameter.
  */
 export function validateDocument(value: unknown): ValidationResult {
   const schemaIssues = validateSchema(value);
@@ -142,6 +143,11 @@ function checkStructure(doc: Document): Issue[] {
 
     seen.set(f.id, f);
     if (f.op === "sketch") sketchEntities.set(f.id, new Set(f.entities.map((e) => e.id)));
+  });
+
+  const dimensionIds = new Set(doc.partStudio.features.flatMap((f) => (f.op === "sketch" ? f.dimensions.map((d) => d.id) : [])));
+  (doc.behaviorEvidence ?? []).forEach((b, i) => {
+    if (!dimensionIds.has(b.target) && !params.has(b.target)) push(`/behaviorEvidence/${i}/target`, `unknown dimension or parameter "${b.target}"`);
   });
 
   return issues;

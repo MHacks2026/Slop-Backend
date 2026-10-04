@@ -93,6 +93,21 @@ export class OnshapeClient implements OnshapeApi {
     return res.bodies["-all-"] ?? Object.values(res.bodies)[0];
   }
 
+  /** `POST .../features/featureid/{fid}` with the full feature definition (architecture doc §4, "Update or delete a feature"). */
+  async updateFeature(ref: DocumentRef, featureId: string, feature: BTFeature): Promise<AddFeatureResponse> {
+    const versions = this.versions.get(key(ref)) ?? (await this.getFeatures(ref), this.versions.get(key(ref))!);
+    const body: BTFeatureDefinitionCall = {
+      btType: "BTFeatureDefinitionCall-1406",
+      feature: { ...feature, featureId },
+      serializationVersion: versions.serializationVersion,
+      sourceMicroversion: versions.sourceMicroversion,
+      ...(versions.libraryVersion !== undefined ? { libraryVersion: versions.libraryVersion } : {}),
+    };
+    const res = await this.http.request<AddFeatureResponse>("POST", `${this.psPath(ref)}/features/featureid/${encodeURIComponent(featureId)}`, { body });
+    this.remember(ref, res);
+    return res;
+  }
+
   async deleteFeature(ref: DocumentRef, featureId: string): Promise<void> {
     await this.http.request("DELETE", `${this.psPath(ref)}/features/featureid/${encodeURIComponent(featureId)}`);
     this.versions.delete(key(ref)); // microversion moved; refetch before the next POST

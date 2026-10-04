@@ -7,6 +7,8 @@ export { basicAuth, hmacAuth } from "./client/auth.ts";
 export type * from "./client/types.ts";
 export { loadConfig, loadClaudeConfig, loadEnvFiles } from "./env.ts";
 export type { OnshapeConfig, ClaudeEnv } from "./env.ts";
+export { runBehaviorTests, locateDimension, normalizeExpression } from "./behavior.ts";
+export type { BehaviorCase, BehaviorResult, BehaviorStatus, BehaviorOptions } from "./behavior.ts";
 export { decodeFsValue } from "./fs/values.ts";
 export { topologyScript, bodyStatsScript } from "./fs/scripts.ts";
 export { queryTopology, queryBodyStats, frameOf } from "./fs/topology.ts";

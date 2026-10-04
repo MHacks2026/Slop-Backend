@@ -99,3 +99,17 @@ test("plate evidence matches analytic geometry (doc §16 step 5)", () => {
   const lostWall = 2 * Math.PI * R * r;
   rel(v5.area, v4.area - lostTop - lostWall + filletSurface, 1e-5);
 });
+
+test("behaviour evidence is evidence: outside the intent hash, and its targets must exist", () => {
+  assert.ok(plate.behaviorEvidence && plate.behaviorEvidence.length >= 5);
+
+  const without = clone(plate);
+  delete without.behaviorEvidence;
+  assert.equal(hashDocument(without).intent, hashDocument(plate).intent);
+
+  const bad = clone(plate);
+  bad.behaviorEvidence!.push({ target: "D9@Nowhere", expression: "1 mm", evidence: plate.behaviorEvidence![0]!.evidence });
+  const r = validateDocument(bad);
+  assert.equal(r.ok, false);
+  assert.match(r.structure[0]!.message, /unknown dimension or parameter "D9@Nowhere"/);
+});

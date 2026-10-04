@@ -13,6 +13,9 @@ export function renderMarkdown(r: BuildReport): string {
   lines.push(`- Fidelity: ${Object.entries(r.summary.byRung).map(([k, v]) => `${k} ${v}`).join(", ")}`);
   lines.push(`- Checks: ${r.summary.checksPassed} passed, ${r.summary.checksFailed} failed`);
   lines.push(`- Enhancements (implied intent the source never encoded): ${r.summary.enhancements}`);
+  if (r.behavior.length) {
+    lines.push(`- Behaviour (Level 3): ${r.summary.behaviorPassed} passed, ${r.summary.behaviorFailed} failed, ${r.summary.behaviorUnverified} unverified`);
+  }
   lines.push(`- Onshape API calls: ${r.apiCalls}`);
   if (r.summary.llmCalls) lines.push(`- LLM: ${r.summary.llmCalls} calls, ${r.summary.inputTokens} in / ${r.summary.outputTokens} out`);
   lines.push(``);
@@ -45,10 +48,34 @@ export function renderMarkdown(r: BuildReport): string {
     }
   }
 
-  if (r.plan.behaviorTests.length) {
+  if (r.behavior.length) {
     lines.push(``);
-    lines.push(`## Behaviour tests (proposed)`);
+    lines.push(`## Behaviour tests (Level 3)`);
+    lines.push(`Each driving dimension is changed in Onshape, the model regenerated and measured, then the change is reverted and the nominal model re-measured.`);
+    for (const b of r.behavior) {
+      const checks = b.checks.length ? ` ${b.checks.filter((c) => c.pass).length}/${b.checks.length} checks` : "";
+      const verified = b.verified ? "against source evidence" : "no source evidence for this change";
+      lines.push(`- ${STATUS_LABEL[b.status]} ${b.target} → \`${b.expression}\` (${verified}):${checks}${b.restored ? "; restored" : "; NOT restored"}`);
+      if (b.featureErrors.length) lines.push(`  - features in error after the change: ${b.featureErrors.join(", ")}`);
+      for (const c of b.checks) {
+        if (c.pass) continue;
+        lines.push(`  - ${c.advisory ? "advisory" : "FAILED"} ${c.name}: expected ${c.expected}, got ${c.actual}${c.error !== undefined ? ` (error ${c.error.toExponential(2)})` : ""}`);
+      }
+      if (b.error) lines.push(`  - error: ${b.error}`);
+      if (b.expectation) lines.push(`  - expectation: ${b.expectation}`);
+    }
+  } else if (r.plan.behaviorTests.length) {
+    lines.push(``);
+    lines.push(`## Behaviour tests (proposed, not run)`);
     for (const t of r.plan.behaviorTests) lines.push(`- ${t.target} → \`${t.expression}\`: ${t.expectation}`);
   }
   return lines.join("\n") + "\n";
 }
+
+const STATUS_LABEL: Record<BuildReport["behavior"][number]["status"], string> = {
+  passed: "PASSED",
+  failed: "FAILED",
+  regenerationFailed: "REGENERATION FAILED",
+  unverified: "UNVERIFIED",
+  unsupported: "UNSUPPORTED",
+};

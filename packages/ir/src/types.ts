@@ -452,6 +452,23 @@ export interface PartStudio {
   features: Feature[];
 }
 
+/**
+ * Level 3 evidence (§9): the extractor changed one driving dimension or
+ * parameter in the source, rebuilt, and recorded what the kernel produced.
+ * The builder applies the same change in the target and compares. Derived,
+ * like `Feature.evidence`: not part of the intent hash.
+ */
+export interface BehaviorEvidence {
+  /** Dimension id ("D1@Sketch1") or parameter id. */
+  target: string;
+  /** New expression as typed in the source, e.g. "55 mm". */
+  expression: string;
+  /** Final-model evidence after the change and rebuild. */
+  evidence: Evidence;
+  /** Optional plain-language expectation, for the report. */
+  expectation?: string;
+}
+
 export interface Document {
   irVersion: typeof IR_VERSION;
   source: Source;
@@ -459,6 +476,8 @@ export interface Document {
   customProperties?: Record<string, string>;
   parameters: Parameter[];
   partStudio: PartStudio;
+  /** Source-side results of perturbing driving dimensions (§9 Level 3). Evidence layer. */
+  behaviorEvidence?: BehaviorEvidence[];
   /** Reserved: configurations as overlays (§5). Empty in the MVP. */
   configurations?: never[];
   /** Reserved: assemblies and mates. Empty in the MVP. */
