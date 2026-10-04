@@ -79,7 +79,7 @@ export class OnshapeClient implements OnshapeApi {
 
   async evaluateFeatureScript(ref: DocumentRef, script: string): Promise<unknown> {
     const res = await this.http.request<{ result?: unknown; notices?: unknown[] }>("POST", `${this.psPath(ref)}/featurescript`, {
-      body: { script, queries: [] },
+      body: { script, queries: {} },
     });
     const errors = (res.notices ?? []).filter((n) => isRecord(n) && n.level === "ERROR");
     if (errors.length) throw new Error(`FeatureScript errors: ${JSON.stringify(errors).slice(0, 1000)}`);

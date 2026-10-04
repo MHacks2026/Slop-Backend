@@ -1,0 +1,1008 @@
+{
+  "document": {
+    "did": "ebf8d01f966d26d32419205a",
+    "wid": "88b7e868950f29ddfe71a82f",
+    "eid": "429fe899e45dda5bc5629cb8"
+  },
+  "irIntentHash": "bc601fc2022ab9857dbafd4d84962efdf5bfa303fbd392667ecbc6aaea297296",
+  "startedAt": "2026-10-03T23:52:10.183Z",
+  "finishedAt": "2026-10-03T23:52:13.690Z",
+  "apiCalls": 18,
+  "stoppedEarly": false,
+  "features": [
+    {
+      "irId": "f1",
+      "srcName": "Sketch1",
+      "op": "sketch",
+      "status": "built",
+      "rung": "exact",
+      "notes": [],
+      "refs": [
+        {
+          "opId": "f1",
+          "parameterId": "sketchPlane",
+          "selection": {
+            "kind": "datum",
+            "name": "FRONT"
+          },
+          "deterministicIds": [
+            "JDC"
+          ],
+          "resolver": "datum",
+          "confidence": 1
+        }
+      ],
+      "checks": [],
+      "attempts": 1,
+      "enhancements": [],
+      "attemptLog": [
+        {
+          "n": 1,
+          "reasoning": "direct mapping of sketch \"Sketch1\"",
+          "errors": [],
+          "checks": [],
+          "summary": "accepted"
+        }
+      ],
+      "onshapeFeatureId": "FLjKaiZRs9rg0WU_0",
+      "featureStatus": "OK",
+      "reasoning": "direct mapping of sketch \"Sketch1\""
+    },
+    {
+      "irId": "f2",
+      "srcName": "Boss-Extrude1",
+      "op": "extrude",
+      "status": "built",
+      "rung": "exact",
+      "notes": [],
+      "refs": [
+        {
+          "opId": "f2",
+          "parameterId": "entities",
+          "selection": {
+            "kind": "sketchRegion",
+            "sketch": "f1"
+          },
+          "deterministicIds": [
+            "FLjKaiZRs9rg0WU_0"
+          ],
+          "resolver": "feature",
+          "confidence": 1
+        }
+      ],
+      "checks": [
+        {
+          "name": "volume",
+          "expected": 0.000015,
+          "actual": 0.000014999999999999999,
+          "error": 1.1293772630057339e-16,
+          "tolerance": 0.000001,
+          "pass": true
+        },
+        {
+          "name": "area",
+          "expected": 0.0046,
+          "actual": 0.0046,
+          "error": 0,
+          "tolerance": 0.000001,
+          "pass": true
+        },
+        {
+          "name": "centerOfMass",
+          "expected": "(0.0250000, 0.0150000, 0.00500000)",
+          "actual": "(0.0250000, 0.0150000, 0.00500000)",
+          "error": 0,
+          "tolerance": 0.000001,
+          "pass": true
+        },
+        {
+          "name": "bodyCount",
+          "expected": 1,
+          "actual": 1,
+          "pass": true
+        },
+        {
+          "name": "faceCount",
+          "expected": 6,
+          "actual": 6,
+          "pass": true,
+          "advisory": true
+        },
+        {
+          "name": "edgeCount",
+          "expected": 12,
+          "actual": 12,
+          "pass": true,
+          "advisory": true
+        },
+        {
+          "name": "vertexCount",
+          "expected": 8,
+          "actual": 8,
+          "pass": true,
+          "advisory": true
+        },
+        {
+          "name": "faceTypes.plane",
+          "expected": 6,
+          "actual": 6,
+          "pass": true,
+          "advisory": true
+        }
+      ],
+      "attempts": 1,
+      "enhancements": [],
+      "attemptLog": [
+        {
+          "n": 1,
+          "reasoning": "direct mapping of extrude \"Boss-Extrude1\"",
+          "errors": [],
+          "checks": [
+            {
+              "name": "volume",
+              "expected": 0.000015,
+              "actual": 0.000014999999999999999,
+              "error": 1.1293772630057339e-16,
+              "tolerance": 0.000001,
+              "pass": true
+            },
+            {
+              "name": "area",
+              "expected": 0.0046,
+              "actual": 0.0046,
+              "error": 0,
+              "tolerance": 0.000001,
+              "pass": true
+            },
+            {
+              "name": "centerOfMass",
+              "expected": "(0.0250000, 0.0150000, 0.00500000)",
+              "actual": "(0.0250000, 0.0150000, 0.00500000)",
+              "error": 0,
+              "tolerance": 0.000001,
+              "pass": true
+            },
+            {
+              "name": "bodyCount",
+              "expected": 1,
+              "actual": 1,
+              "pass": true
+            },
+            {
+              "name": "faceCount",
+              "expected": 6,
+              "actual": 6,
+              "pass": true,
+              "advisory": true
+            },
+            {
+              "name": "edgeCount",
+              "expected": 12,
+              "actual": 12,
+              "pass": true,
+              "advisory": true
+            },
+            {
+              "name": "vertexCount",
+              "expected": 8,
+              "actual": 8,
+              "pass": true,
+              "advisory": true
+            },
+            {
+              "name": "faceTypes.plane",
+              "expected": 6,
+              "actual": 6,
+              "pass": true,
+              "advisory": true
+            }
+          ],
+          "summary": "accepted"
+        }
+      ],
+      "onshapeFeatureId": "F90es0WfSX9ZOcJ_0",
+      "featureStatus": "OK",
+      "reasoning": "direct mapping of extrude \"Boss-Extrude1\""
+    },
+    {
+      "irId": "f3",
+      "srcName": "Sketch2",
+      "op": "sketch",
+      "status": "built",
+      "rung": "approximated",
+      "notes": [
+        "dimension D2@Sketch2 references model geometry; placed at fixed coordinates instead (locating dimensions to model edges not mapped yet)",
+        "dimension D3@Sketch2 references model geometry; placed at fixed coordinates instead (locating dimensions to model edges not mapped yet)"
+      ],
+      "refs": [
+        {
+          "opId": "f3",
+          "parameterId": "sketchPlane",
+          "selection": {
+            "kind": "irRef",
+            "irFeature": "f3",
+            "path": "plane"
+          },
+          "deterministicIds": [
+            "JHK"
+          ],
+          "resolver": "signature",
+          "confidence": 1,
+          "runnerUp": 4.052847345691868e-13,
+          "candidates": 6
+        }
+      ],
+      "checks": [],
+      "attempts": 1,
+      "enhancements": [],
+      "attemptLog": [
+        {
+          "n": 1,
+          "reasoning": "direct mapping of sketch \"Sketch2\"",
+          "errors": [],
+          "checks": [],
+          "summary": "accepted"
+        }
+      ],
+      "onshapeFeatureId": "FopwH2JbdlivKDx_1",
+      "featureStatus": "OK",
+      "reasoning": "direct mapping of sketch \"Sketch2\""
+    },
+    {
+      "irId": "f4",
+      "srcName": "Cut-Extrude1",
+      "op": "extrude",
+      "status": "built",
+      "rung": "exact",
+      "notes": [],
+      "refs": [
+        {
+          "opId": "f4",
+          "parameterId": "entities",
+          "selection": {
+            "kind": "sketchRegion",
+            "sketch": "f3"
+          },
+          "deterministicIds": [
+            "FopwH2JbdlivKDx_1"
+          ],
+          "resolver": "feature",
+          "confidence": 1
+        }
+      ],
+      "checks": [
+        {
+          "name": "volume",
+          "expected": 0.000014803650459,
+          "actual": 0.000014803650459150637,
+          "error": 1.0175621192685225e-11,
+          "tolerance": 0.000001,
+          "pass": true
+        },
+        {
+          "name": "area",
+          "expected": 0.00471780972451,
+          "actual": 0.004717809724509617,
+          "error": 8.107714146793272e-14,
+          "tolerance": 0.000001,
+          "pass": true
+        },
+        {
+          "name": "centerOfMass",
+          "expected": "(0.0250000, 0.0150000, 0.00500000)",
+          "actual": "(0.0250000, 0.0150000, 0.00500000)",
+          "error": 0,
+          "tolerance": 0.000001,
+          "pass": true
+        },
+        {
+          "name": "bodyCount",
+          "expected": 1,
+          "actual": 1,
+          "pass": true
+        },
+        {
+          "name": "faceCount",
+          "expected": 7,
+          "actual": 7,
+          "pass": true,
+          "advisory": true
+        },
+        {
+          "name": "faceTypes.plane",
+          "expected": 6,
+          "actual": 6,
+          "pass": true,
+          "advisory": true
+        },
+        {
+          "name": "faceTypes.cylinder",
+          "expected": 1,
+          "actual": 1,
+          "pass": true,
+          "advisory": true
+        }
+      ],
+      "attempts": 1,
+      "enhancements": [],
+      "attemptLog": [
+        {
+          "n": 1,
+          "reasoning": "direct mapping of extrude \"Cut-Extrude1\"",
+          "errors": [],
+          "checks": [
+            {
+              "name": "volume",
+              "expected": 0.000014803650459,
+              "actual": 0.000014803650459150637,
+              "error": 1.0175621192685225e-11,
+              "tolerance": 0.000001,
+              "pass": true
+            },
+            {
+              "name": "area",
+              "expected": 0.00471780972451,
+              "actual": 0.004717809724509617,
+              "error": 8.107714146793272e-14,
+              "tolerance": 0.000001,
+              "pass": true
+            },
+            {
+              "name": "centerOfMass",
+              "expected": "(0.0250000, 0.0150000, 0.00500000)",
+              "actual": "(0.0250000, 0.0150000, 0.00500000)",
+              "error": 0,
+              "tolerance": 0.000001,
+              "pass": true
+            },
+            {
+              "name": "bodyCount",
+              "expected": 1,
+              "actual": 1,
+              "pass": true
+            },
+            {
+              "name": "faceCount",
+              "expected": 7,
+              "actual": 7,
+              "pass": true,
+              "advisory": true
+            },
+            {
+              "name": "faceTypes.plane",
+              "expected": 6,
+              "actual": 6,
+              "pass": true,
+              "advisory": true
+            },
+            {
+              "name": "faceTypes.cylinder",
+              "expected": 1,
+              "actual": 1,
+              "pass": true,
+              "advisory": true
+            }
+          ],
+          "summary": "accepted"
+        }
+      ],
+      "onshapeFeatureId": "FJ4UTqmOqGrr1Sd_1",
+      "featureStatus": "OK",
+      "reasoning": "direct mapping of extrude \"Cut-Extrude1\""
+    },
+    {
+      "irId": "f5",
+      "srcName": "Fillet1",
+      "op": "fillet",
+      "status": "built",
+      "rung": "exact",
+      "notes": [],
+      "refs": [
+        {
+          "opId": "f5",
+          "parameterId": "entities",
+          "selection": {
+            "kind": "irRef",
+            "irFeature": "f5",
+            "path": "edges[0]"
+          },
+          "deterministicIds": [
+            "JLF"
+          ],
+          "resolver": "signature",
+          "confidence": 1,
+          "runnerUp": 9.9999999e-9,
+          "candidates": 2
+        }
+      ],
+      "checks": [
+        {
+          "name": "volume",
+          "expected": 0.000014787757144,
+          "actual": 0.00001478775714364078,
+          "error": 2.4291709227367247e-11,
+          "tolerance": 0.000001,
+          "pass": true
+        },
+        {
+          "name": "area",
+          "expected": 0.004706105199205,
+          "actual": 0.004706105199204547,
+          "error": 9.620754489432825e-14,
+          "tolerance": 0.000001,
+          "pass": true
+        },
+        {
+          "name": "bodyCount",
+          "expected": 1,
+          "actual": 1,
+          "pass": true
+        },
+        {
+          "name": "faceCount",
+          "expected": 8,
+          "actual": 8,
+          "pass": true,
+          "advisory": true
+        },
+        {
+          "name": "faceTypes.plane",
+          "expected": 6,
+          "actual": 6,
+          "pass": true,
+          "advisory": true
+        },
+        {
+          "name": "faceTypes.cylinder",
+          "expected": 1,
+          "actual": 1,
+          "pass": true,
+          "advisory": true
+        },
+        {
+          "name": "faceTypes.torus",
+          "expected": 1,
+          "actual": 1,
+          "pass": true,
+          "advisory": true
+        }
+      ],
+      "attempts": 1,
+      "enhancements": [],
+      "attemptLog": [
+        {
+          "n": 1,
+          "reasoning": "direct mapping of fillet \"Fillet1\"",
+          "errors": [],
+          "checks": [
+            {
+              "name": "volume",
+              "expected": 0.000014787757144,
+              "actual": 0.00001478775714364078,
+              "error": 2.4291709227367247e-11,
+              "tolerance": 0.000001,
+              "pass": true
+            },
+            {
+              "name": "area",
+              "expected": 0.004706105199205,
+              "actual": 0.004706105199204547,
+              "error": 9.620754489432825e-14,
+              "tolerance": 0.000001,
+              "pass": true
+            },
+            {
+              "name": "bodyCount",
+              "expected": 1,
+              "actual": 1,
+              "pass": true
+            },
+            {
+              "name": "faceCount",
+              "expected": 8,
+              "actual": 8,
+              "pass": true,
+              "advisory": true
+            },
+            {
+              "name": "faceTypes.plane",
+              "expected": 6,
+              "actual": 6,
+              "pass": true,
+              "advisory": true
+            },
+            {
+              "name": "faceTypes.cylinder",
+              "expected": 1,
+              "actual": 1,
+              "pass": true,
+              "advisory": true
+            },
+            {
+              "name": "faceTypes.torus",
+              "expected": 1,
+              "actual": 1,
+              "pass": true,
+              "advisory": true
+            }
+          ],
+          "summary": "accepted"
+        }
+      ],
+      "onshapeFeatureId": "FMJ2jBz04FdA8g7_1",
+      "featureStatus": "OK",
+      "reasoning": "direct mapping of fillet \"Fillet1\""
+    }
+  ],
+  "plan": {
+    "planVersion": "0.1.0",
+    "irIntentHash": "bc601fc2022ab9857dbafd4d84962efdf5bfa303fbd392667ecbc6aaea297296",
+    "provenance": {
+      "planner": "rules",
+      "promptVersion": "n/a"
+    },
+    "steps": [
+      {
+        "irFeature": "f1",
+        "ops": [
+          {
+            "op": "createSketch",
+            "id": "f1",
+            "name": "Sketch1",
+            "intent": "Reproduce Sketch1: 4 entities, 9 relations, 2 dimensions, on the FRONT plane",
+            "rung": "exact",
+            "plane": {
+              "kind": "datum",
+              "name": "FRONT"
+            },
+            "irSketch": "f1",
+            "entities": [
+              {
+                "id": "l1",
+                "type": "line",
+                "construction": false,
+                "p0": [
+                  0,
+                  0
+                ],
+                "p1": [
+                  0.05,
+                  0
+                ]
+              },
+              {
+                "id": "l2",
+                "type": "line",
+                "construction": false,
+                "p0": [
+                  0.05,
+                  0
+                ],
+                "p1": [
+                  0.05,
+                  0.03
+                ]
+              },
+              {
+                "id": "l3",
+                "type": "line",
+                "construction": false,
+                "p0": [
+                  0.05,
+                  0.03
+                ],
+                "p1": [
+                  0,
+                  0.03
+                ]
+              },
+              {
+                "id": "l4",
+                "type": "line",
+                "construction": false,
+                "p0": [
+                  0,
+                  0.03
+                ],
+                "p1": [
+                  0,
+                  0
+                ]
+              }
+            ],
+            "constraints": [
+              {
+                "type": "horizontal",
+                "args": [
+                  "l1"
+                ]
+              },
+              {
+                "type": "horizontal",
+                "args": [
+                  "l3"
+                ]
+              },
+              {
+                "type": "vertical",
+                "args": [
+                  "l2"
+                ]
+              },
+              {
+                "type": "vertical",
+                "args": [
+                  "l4"
+                ]
+              },
+              {
+                "type": "coincident",
+                "args": [
+                  "l1.start",
+                  "ORIGIN"
+                ]
+              },
+              {
+                "type": "coincident",
+                "args": [
+                  "l1.end",
+                  "l2.start"
+                ]
+              },
+              {
+                "type": "coincident",
+                "args": [
+                  "l2.end",
+                  "l3.start"
+                ]
+              },
+              {
+                "type": "coincident",
+                "args": [
+                  "l3.end",
+                  "l4.start"
+                ]
+              },
+              {
+                "type": "coincident",
+                "args": [
+                  "l4.end",
+                  "l1.start"
+                ]
+              }
+            ],
+            "dimensions": [
+              {
+                "id": "D1@Sketch1",
+                "type": "distance",
+                "args": [
+                  "l1"
+                ],
+                "value": {
+                  "expr": "50 mm",
+                  "value": 0.05,
+                  "unit": "m"
+                },
+                "driving": true
+              },
+              {
+                "id": "D2@Sketch1",
+                "type": "distance",
+                "args": [
+                  "l2"
+                ],
+                "value": {
+                  "expr": "30 mm",
+                  "value": 0.03,
+                  "unit": "m"
+                },
+                "driving": true
+              }
+            ]
+          }
+        ],
+        "reasoning": "direct mapping of sketch \"Sketch1\"",
+        "attempts": 1
+      },
+      {
+        "irFeature": "f2",
+        "ops": [
+          {
+            "op": "createFeature",
+            "id": "f2",
+            "name": "Boss-Extrude1",
+            "intent": "Extrude the region of f1 10 mm blind",
+            "rung": "exact",
+            "featureType": "extrude",
+            "parameters": [
+              {
+                "id": "bodyType",
+                "enum": {
+                  "name": "ExtendedToolBodyType",
+                  "value": "SOLID"
+                }
+              },
+              {
+                "id": "operationType",
+                "enum": {
+                  "name": "NewBodyOperationType",
+                  "value": "NEW"
+                }
+              },
+              {
+                "id": "entities",
+                "selections": [
+                  {
+                    "kind": "sketchRegion",
+                    "sketch": "f1"
+                  }
+                ]
+              },
+              {
+                "id": "endBound",
+                "enum": {
+                  "name": "BoundingType",
+                  "value": "BLIND"
+                }
+              },
+              {
+                "id": "depth",
+                "quantity": "10 mm"
+              },
+              {
+                "id": "oppositeDirection",
+                "boolean": false
+              }
+            ]
+          }
+        ],
+        "reasoning": "direct mapping of extrude \"Boss-Extrude1\"",
+        "attempts": 1
+      },
+      {
+        "irFeature": "f3",
+        "ops": [
+          {
+            "op": "createSketch",
+            "id": "f3",
+            "name": "Sketch2",
+            "intent": "Reproduce Sketch2: 1 entities, 0 relations, 3 dimensions, on a face created by f2 (capEnd)",
+            "rung": "approximated",
+            "plane": {
+              "kind": "irRef",
+              "irFeature": "f3",
+              "path": "plane"
+            },
+            "irSketch": "f3",
+            "entities": [
+              {
+                "id": "c1",
+                "type": "circle",
+                "construction": false,
+                "center": [
+                  0.025,
+                  0.015
+                ],
+                "r": 0.0025
+              }
+            ],
+            "constraints": [],
+            "dimensions": [
+              {
+                "id": "D1@Sketch2",
+                "type": "diameter",
+                "args": [
+                  "c1"
+                ],
+                "value": {
+                  "expr": "5 mm",
+                  "value": 0.005,
+                  "unit": "m"
+                },
+                "driving": true
+              },
+              {
+                "id": "D2@Sketch2",
+                "type": "distance",
+                "args": [
+                  "c1.center",
+                  {
+                    "kind": "topo",
+                    "entity": "edge",
+                    "createdBy": "f2",
+                    "role": "edge:capEnd|sideWall:l4",
+                    "srcPersistId": "sw:persist:0002",
+                    "signature": {
+                      "curve": "line",
+                      "midpoint": [
+                        0,
+                        0.015,
+                        0.01
+                      ],
+                      "length": 0.03,
+                      "direction": [
+                        0,
+                        1,
+                        0
+                      ]
+                    }
+                  }
+                ],
+                "value": {
+                  "expr": "25 mm",
+                  "value": 0.025,
+                  "unit": "m"
+                },
+                "driving": true
+              },
+              {
+                "id": "D3@Sketch2",
+                "type": "distance",
+                "args": [
+                  "c1.center",
+                  {
+                    "kind": "topo",
+                    "entity": "edge",
+                    "createdBy": "f2",
+                    "role": "edge:capEnd|sideWall:l1",
+                    "srcPersistId": "sw:persist:0003",
+                    "signature": {
+                      "curve": "line",
+                      "midpoint": [
+                        0.025,
+                        0,
+                        0.01
+                      ],
+                      "length": 0.05,
+                      "direction": [
+                        1,
+                        0,
+                        0
+                      ]
+                    }
+                  }
+                ],
+                "value": {
+                  "expr": "15 mm",
+                  "value": 0.015,
+                  "unit": "m"
+                },
+                "driving": true
+              }
+            ]
+          }
+        ],
+        "reasoning": "direct mapping of sketch \"Sketch2\"",
+        "attempts": 1
+      },
+      {
+        "irFeature": "f4",
+        "ops": [
+          {
+            "op": "createFeature",
+            "id": "f4",
+            "name": "Cut-Extrude1",
+            "intent": "Cut the region of f3 through all",
+            "rung": "exact",
+            "featureType": "extrude",
+            "parameters": [
+              {
+                "id": "bodyType",
+                "enum": {
+                  "name": "ExtendedToolBodyType",
+                  "value": "SOLID"
+                }
+              },
+              {
+                "id": "operationType",
+                "enum": {
+                  "name": "NewBodyOperationType",
+                  "value": "REMOVE"
+                }
+              },
+              {
+                "id": "entities",
+                "selections": [
+                  {
+                    "kind": "sketchRegion",
+                    "sketch": "f3"
+                  }
+                ]
+              },
+              {
+                "id": "endBound",
+                "enum": {
+                  "name": "BoundingType",
+                  "value": "THROUGH_ALL"
+                }
+              },
+              {
+                "id": "oppositeDirection",
+                "boolean": true
+              }
+            ]
+          }
+        ],
+        "reasoning": "direct mapping of extrude \"Cut-Extrude1\"",
+        "attempts": 1
+      },
+      {
+        "irFeature": "f5",
+        "ops": [
+          {
+            "op": "createFeature",
+            "id": "f5",
+            "name": "Fillet1",
+            "intent": "Fillet 1 edge(s) at 2 mm (edge:sideWall|capEnd:f2)",
+            "rung": "exact",
+            "featureType": "fillet",
+            "parameters": [
+              {
+                "id": "entities",
+                "selections": [
+                  {
+                    "kind": "irRef",
+                    "irFeature": "f5",
+                    "path": "edges[0]"
+                  }
+                ]
+              },
+              {
+                "id": "radius",
+                "quantity": "2 mm"
+              },
+              {
+                "id": "tangentPropagation",
+                "boolean": true
+              }
+            ]
+          }
+        ],
+        "reasoning": "direct mapping of fillet \"Fillet1\"",
+        "attempts": 1
+      }
+    ],
+    "behaviorTests": [
+      {
+        "target": "D1@Sketch1",
+        "expression": "55 mm",
+        "expectation": "model regenerates; dependent features keep their references; volumes match the source after the same change"
+      },
+      {
+        "target": "D2@Sketch1",
+        "expression": "33 mm",
+        "expectation": "model regenerates; dependent features keep their references; volumes match the source after the same change"
+      },
+      {
+        "target": "D1@Sketch2",
+        "expression": "5.5 mm",
+        "expectation": "model regenerates; dependent features keep their references; volumes match the source after the same change"
+      },
+      {
+        "target": "D2@Sketch2",
+        "expression": "27.5 mm",
+        "expectation": "model regenerates; dependent features keep their references; volumes match the source after the same change"
+      },
+      {
+        "target": "D3@Sketch2",
+        "expression": "16.5 mm",
+        "expectation": "model regenerates; dependent features keep their references; volumes match the source after the same change"
+      }
+    ]
+  },
+  "summary": {
+    "byRung": {
+      "exact": 4,
+      "approximated": 1
+    },
+    "built": 5,
+    "failed": 0,
+    "skipped": 0,
+    "checksPassed": 22,
+    "checksFailed": 0,
+    "enhancements": 0,
+    "llmCalls": 0,
+    "inputTokens": 0,
+    "outputTokens": 0
+  }
+}

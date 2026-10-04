@@ -1,0 +1,456 @@
+{
+  "planVersion": "0.1.0",
+  "irIntentHash": "bc601fc2022ab9857dbafd4d84962efdf5bfa303fbd392667ecbc6aaea297296",
+  "provenance": {
+    "planner": "rules",
+    "promptVersion": "n/a"
+  },
+  "steps": [
+    {
+      "irFeature": "f1",
+      "ops": [
+        {
+          "op": "createSketch",
+          "id": "f1",
+          "name": "Sketch1",
+          "intent": "Reproduce Sketch1: 4 entities, 9 relations, 2 dimensions, on the FRONT plane",
+          "rung": "exact",
+          "plane": {
+            "kind": "datum",
+            "name": "FRONT"
+          },
+          "irSketch": "f1",
+          "entities": [
+            {
+              "id": "l1",
+              "type": "line",
+              "construction": false,
+              "p0": [
+                0,
+                0
+              ],
+              "p1": [
+                0.05,
+                0
+              ]
+            },
+            {
+              "id": "l2",
+              "type": "line",
+              "construction": false,
+              "p0": [
+                0.05,
+                0
+              ],
+              "p1": [
+                0.05,
+                0.03
+              ]
+            },
+            {
+              "id": "l3",
+              "type": "line",
+              "construction": false,
+              "p0": [
+                0.05,
+                0.03
+              ],
+              "p1": [
+                0,
+                0.03
+              ]
+            },
+            {
+              "id": "l4",
+              "type": "line",
+              "construction": false,
+              "p0": [
+                0,
+                0.03
+              ],
+              "p1": [
+                0,
+                0
+              ]
+            }
+          ],
+          "constraints": [
+            {
+              "type": "horizontal",
+              "args": [
+                "l1"
+              ]
+            },
+            {
+              "type": "horizontal",
+              "args": [
+                "l3"
+              ]
+            },
+            {
+              "type": "vertical",
+              "args": [
+                "l2"
+              ]
+            },
+            {
+              "type": "vertical",
+              "args": [
+                "l4"
+              ]
+            },
+            {
+              "type": "coincident",
+              "args": [
+                "l1.start",
+                "ORIGIN"
+              ]
+            },
+            {
+              "type": "coincident",
+              "args": [
+                "l1.end",
+                "l2.start"
+              ]
+            },
+            {
+              "type": "coincident",
+              "args": [
+                "l2.end",
+                "l3.start"
+              ]
+            },
+            {
+              "type": "coincident",
+              "args": [
+                "l3.end",
+                "l4.start"
+              ]
+            },
+            {
+              "type": "coincident",
+              "args": [
+                "l4.end",
+                "l1.start"
+              ]
+            }
+          ],
+          "dimensions": [
+            {
+              "id": "D1@Sketch1",
+              "type": "distance",
+              "args": [
+                "l1"
+              ],
+              "value": {
+                "expr": "50 mm",
+                "value": 0.05,
+                "unit": "m"
+              },
+              "driving": true
+            },
+            {
+              "id": "D2@Sketch1",
+              "type": "distance",
+              "args": [
+                "l2"
+              ],
+              "value": {
+                "expr": "30 mm",
+                "value": 0.03,
+                "unit": "m"
+              },
+              "driving": true
+            }
+          ]
+        }
+      ],
+      "reasoning": "direct mapping of sketch \"Sketch1\"",
+      "attempts": 1
+    },
+    {
+      "irFeature": "f2",
+      "ops": [
+        {
+          "op": "createFeature",
+          "id": "f2",
+          "name": "Boss-Extrude1",
+          "intent": "Extrude the region of f1 10 mm blind",
+          "rung": "exact",
+          "featureType": "extrude",
+          "parameters": [
+            {
+              "id": "bodyType",
+              "enum": {
+                "name": "ExtendedToolBodyType",
+                "value": "SOLID"
+              }
+            },
+            {
+              "id": "operationType",
+              "enum": {
+                "name": "NewBodyOperationType",
+                "value": "NEW"
+              }
+            },
+            {
+              "id": "entities",
+              "selections": [
+                {
+                  "kind": "sketchRegion",
+                  "sketch": "f1"
+                }
+              ]
+            },
+            {
+              "id": "endBound",
+              "enum": {
+                "name": "BoundingType",
+                "value": "BLIND"
+              }
+            },
+            {
+              "id": "depth",
+              "quantity": "10 mm"
+            },
+            {
+              "id": "oppositeDirection",
+              "boolean": false
+            }
+          ]
+        }
+      ],
+      "reasoning": "direct mapping of extrude \"Boss-Extrude1\"",
+      "attempts": 1
+    },
+    {
+      "irFeature": "f3",
+      "ops": [
+        {
+          "op": "createSketch",
+          "id": "f3",
+          "name": "Sketch2",
+          "intent": "Reproduce Sketch2: 1 entities, 0 relations, 3 dimensions, on a face created by f2 (capEnd)",
+          "rung": "approximated",
+          "plane": {
+            "kind": "irRef",
+            "irFeature": "f3",
+            "path": "plane"
+          },
+          "irSketch": "f3",
+          "entities": [
+            {
+              "id": "c1",
+              "type": "circle",
+              "construction": false,
+              "center": [
+                0.025,
+                0.015
+              ],
+              "r": 0.0025
+            }
+          ],
+          "constraints": [],
+          "dimensions": [
+            {
+              "id": "D1@Sketch2",
+              "type": "diameter",
+              "args": [
+                "c1"
+              ],
+              "value": {
+                "expr": "5 mm",
+                "value": 0.005,
+                "unit": "m"
+              },
+              "driving": true
+            },
+            {
+              "id": "D2@Sketch2",
+              "type": "distance",
+              "args": [
+                "c1.center",
+                {
+                  "kind": "topo",
+                  "entity": "edge",
+                  "createdBy": "f2",
+                  "role": "edge:capEnd|sideWall:l4",
+                  "srcPersistId": "sw:persist:0002",
+                  "signature": {
+                    "curve": "line",
+                    "midpoint": [
+                      0,
+                      0.015,
+                      0.01
+                    ],
+                    "length": 0.03,
+                    "direction": [
+                      0,
+                      1,
+                      0
+                    ]
+                  }
+                }
+              ],
+              "value": {
+                "expr": "25 mm",
+                "value": 0.025,
+                "unit": "m"
+              },
+              "driving": true
+            },
+            {
+              "id": "D3@Sketch2",
+              "type": "distance",
+              "args": [
+                "c1.center",
+                {
+                  "kind": "topo",
+                  "entity": "edge",
+                  "createdBy": "f2",
+                  "role": "edge:capEnd|sideWall:l1",
+                  "srcPersistId": "sw:persist:0003",
+                  "signature": {
+                    "curve": "line",
+                    "midpoint": [
+                      0.025,
+                      0,
+                      0.01
+                    ],
+                    "length": 0.05,
+                    "direction": [
+                      1,
+                      0,
+                      0
+                    ]
+                  }
+                }
+              ],
+              "value": {
+                "expr": "15 mm",
+                "value": 0.015,
+                "unit": "m"
+              },
+              "driving": true
+            }
+          ]
+        }
+      ],
+      "reasoning": "direct mapping of sketch \"Sketch2\"",
+      "attempts": 1
+    },
+    {
+      "irFeature": "f4",
+      "ops": [
+        {
+          "op": "createFeature",
+          "id": "f4",
+          "name": "Cut-Extrude1",
+          "intent": "Cut the region of f3 through all",
+          "rung": "exact",
+          "featureType": "extrude",
+          "parameters": [
+            {
+              "id": "bodyType",
+              "enum": {
+                "name": "ExtendedToolBodyType",
+                "value": "SOLID"
+              }
+            },
+            {
+              "id": "operationType",
+              "enum": {
+                "name": "NewBodyOperationType",
+                "value": "REMOVE"
+              }
+            },
+            {
+              "id": "entities",
+              "selections": [
+                {
+                  "kind": "sketchRegion",
+                  "sketch": "f3"
+                }
+              ]
+            },
+            {
+              "id": "endBound",
+              "enum": {
+                "name": "BoundingType",
+                "value": "THROUGH_ALL"
+              }
+            },
+            {
+              "id": "oppositeDirection",
+              "boolean": true
+            }
+          ]
+        }
+      ],
+      "reasoning": "direct mapping of extrude \"Cut-Extrude1\"",
+      "attempts": 1
+    },
+    {
+      "irFeature": "f5",
+      "ops": [
+        {
+          "op": "createFeature",
+          "id": "f5",
+          "name": "Fillet1",
+          "intent": "Fillet 1 edge(s) at 2 mm (edge:sideWall|capEnd:f2)",
+          "rung": "exact",
+          "featureType": "fillet",
+          "parameters": [
+            {
+              "id": "entities",
+              "selections": [
+                {
+                  "kind": "irRef",
+                  "irFeature": "f5",
+                  "path": "edges[0]"
+                }
+              ]
+            },
+            {
+              "id": "radius",
+              "quantity": "2 mm"
+            },
+            {
+              "id": "tangentPropagation",
+              "boolean": true
+            }
+          ]
+        }
+      ],
+      "reasoning": "direct mapping of fillet \"Fillet1\"",
+      "attempts": 1
+    }
+  ],
+  "behaviorTests": [
+    {
+      "target": "D1@Sketch1",
+      "expression": "55 mm",
+      "expectation": "model regenerates; dependent features keep their references; volumes match the source after the same change"
+    },
+    {
+      "target": "D2@Sketch1",
+      "expression": "33 mm",
+      "expectation": "model regenerates; dependent features keep their references; volumes match the source after the same change"
+    },
+    {
+      "target": "D1@Sketch2",
+      "expression": "5.5 mm",
+      "expectation": "model regenerates; dependent features keep their references; volumes match the source after the same change"
+    },
+    {
+      "target": "D2@Sketch2",
+      "expression": "27.5 mm",
+      "expectation": "model regenerates; dependent features keep their references; volumes match the source after the same change"
+    },
+    {
+      "target": "D3@Sketch2",
+      "expression": "16.5 mm",
+      "expectation": "model regenerates; dependent features keep their references; volumes match the source after the same change"
+    }
+  ]
+}

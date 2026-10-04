@@ -71,7 +71,7 @@ function proposeExtrude(f: ExtrudeFeature, ctx: StepContext, parameters: Readonl
   if ((f.profile.index ?? 0) !== 0) throw new ProposalError("sketch region by index > 0 is not supported by the direct proposer");
 
   const params: ParameterValue[] = [
-    { id: "bodyType", enum: { name: "ToolBodyType", value: "SOLID" } },
+    { id: "bodyType", enum: { name: "ExtendedToolBodyType", value: "SOLID" } },
     { id: "operationType", enum: { name: "NewBodyOperationType", value: OPERATION[f.mode] } },
     { id: "entities", selections: [{ kind: "sketchRegion", sketch: f.profile.feature }] },
     ...endParams(f.id, "end", f.end, "endBound", "depth", "endBoundEntityFace", "endBoundEntityVertex", parameters),

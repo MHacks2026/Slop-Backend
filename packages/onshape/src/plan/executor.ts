@@ -2,8 +2,8 @@ import type { DatumName, Document, EntityType, Feature, Parameter, Ref, TopoRef 
 import type { OnshapeApi } from "../client/api.ts";
 import type { BTFeature, BTMFeature, BTParameter, BTQuery, DocumentRef } from "../client/types.ts";
 import { boolParam, enumParam, idQuery, quantity, queryList, sketchRegionQuery, stringParam } from "../expression.ts";
-import { frameOf, queryTopology, type Candidate } from "../fs/topology.ts";
-import { dist, dot, normalize, type PlaneFrame } from "../geometry.ts";
+import { frameOf, querySketchPlane, queryTopology, type Candidate } from "../fs/topology.ts";
+import { dist, dot, normalize, sameFrame, type PlaneFrame } from "../geometry.ts";
 import { rankCandidates, type RankedCandidate, type ResolveOptions } from "../resolver.ts";
 import { composeSketch, SketchComposeError } from "../sketch/compose.ts";
 import type { EntityPredicate, Op, ParameterValue, Selection } from "./types.ts";
@@ -225,6 +225,18 @@ export class Executor implements StepContext {
     this.topology.clear();
 
     const status = res.featureState?.featureStatus;
+    if (op.op === "createSketch" && (!status || status === "OK" || status === "WARNING")) {
+      // Open question 2 (doc §17): confirm Onshape's sketch frame is the one the coordinates were written in.
+      const assumed = this.frames.get(op.id)!;
+      const actual = await querySketchPlane(this.api, this.ref, onshapeFeatureId);
+      if (actual && !sameFrame(assumed, actual)) {
+        const result: OpResult = { opId: op.id, onshapeFeatureId, featureStatus: status ?? "OK", notes, selections };
+        throw Object.assign(
+          new ExecutionError(op.id, `sketch frame mismatch: coordinates were written for origin ${fmt(assumed.origin)} x ${fmt(assumed.x)}, Onshape used origin ${fmt(actual.origin)} x ${fmt(actual.x)}`),
+          { partial: result },
+        );
+      }
+    }
     if (status && status !== "OK" && status !== "WARNING") {
       // Leave the id registered so undo() can delete it.
       const result: OpResult = { opId: op.id, onshapeFeatureId, featureStatus: status, notes, selections };
@@ -411,3 +423,5 @@ function matchesPredicate(c: Candidate, w: EntityPredicate, o: ResolveOptions): 
   }
   return true;
 }
+
+const fmt = (v: readonly number[]): string => `(${v.map((x) => +x.toFixed(6)).join(", ")})`;

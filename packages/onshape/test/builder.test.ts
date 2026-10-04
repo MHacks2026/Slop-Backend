@@ -63,7 +63,9 @@ test("plate builds end to end against the fake with all Level 1 checks passing",
   const circle = sk2.entities[0]!;
   assert.equal(circle.btType, "BTMSketchCurve-4");
   if (circle.btType === "BTMSketchCurve-4") {
-    assert.ok(Math.abs(circle.geometry.xCenter) < 1e-12 && Math.abs(circle.geometry.yCenter) < 1e-12);
+    // Onshape sketch frames originate at the projected world origin (verified live), so the hole keeps its
+    // model position; the fake's cap frame has x = +Y, so model (0.025, 0.015) is local (0.015, -0.025).
+    assert.ok(Math.abs(circle.geometry.xCenter - 0.015) < 1e-12 && Math.abs(circle.geometry.yCenter + 0.025) < 1e-12);
     assert.equal(circle.geometry.radius, 0.0025);
   }
 

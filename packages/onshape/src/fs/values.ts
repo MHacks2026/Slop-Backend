@@ -10,11 +10,13 @@
  *   BTFSValueArray-1499      {value: [...]}
  *   BTFSValueMap-2077        {value: [{key, value}, ...]}
  *
- * Matching is by prefix so a bumped class id does not break decoding.
+ * The live API returns fully qualified names ("com.belmonttech.serialize.
+ * fsvalue.BTFSValueArray") while docs show short ones ("BTFSValueArray-1499"),
+ * so matching strips the package and ignores the class id.
  */
 export function decodeFsValue(v: unknown): unknown {
   if (!isRecord(v) || typeof v.btType !== "string") return v;
-  const t = v.btType;
+  const t = v.btType.slice(v.btType.lastIndexOf(".") + 1);
   if (t.startsWith("BTFSValueUndefined")) return undefined;
   if (t.startsWith("BTFSValueArray")) return (asArray(v.value)).map(decodeFsValue);
   if (t.startsWith("BTFSValueMap")) {

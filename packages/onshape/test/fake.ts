@@ -64,8 +64,9 @@ export class FakeOnshape implements OnshapeApi {
     if (script.includes("qAllModifiableSolidBodies")) {
       const ev = this.lastSolid ? this.world.evidence[this.lastSolid] : undefined;
       const faceTypes = Object.fromEntries(Object.entries(ev?.faceTypes ?? {}).map(([k, v]) => [k.toUpperCase(), v]));
-      return decodeFsValue(encode({ bodyCount: ev?.bodyCount ?? 0, faceCount: ev?.faceCount ?? 0, edgeCount: ev?.edgeCount ?? 0, vertexCount: ev?.vertexCount ?? 0, faceTypes }));
+      return decodeFsValue(encode({ bodyCount: ev?.bodyCount ?? 0, faceCount: ev?.faceCount ?? 0, edgeCount: ev?.edgeCount ?? 0, vertexCount: ev?.vertexCount ?? 0, faceTypes, centroid: ev?.centerOfMass }));
     }
+    if (script.includes("evOwnerSketchPlane")) return this.sketchPlane(script);
     const m = /makeId\("([^"]+)"\)[\s\S]*?EntityType\.(FACE|EDGE|VERTEX)/.exec(script);
     if (!m) throw new Error(`fake cannot interpret script:\n${script}`);
     const key = this.nameById.get(m[1]!) ?? m[1]!;
@@ -74,13 +75,32 @@ export class FakeOnshape implements OnshapeApi {
     return decodeFsValue(encode(records));
   }
 
+  /** Like Onshape: the sketch plane is the face's plane with its origin at the projected world origin. */
+  private sketchPlane(script: string): unknown {
+    const id = /makeId\("([^"]+)"\)/.exec(script)?.[1];
+    const added = this.added.find((a) => a.id === id);
+    const planeParam = added?.feature.parameters.find((p) => p.parameterId === "sketchPlane") as { queries?: Array<{ deterministicIds?: string[] }> } | undefined;
+    const faceId = planeParam?.queries?.[0]?.deterministicIds?.[0];
+    if (!faceId) return undefined;
+    for (const t of Object.values(this.world.topology)) {
+      const rec = t.face?.find((r) => r.ids.includes(faceId));
+      if (rec && Array.isArray(rec.origin) && Array.isArray(rec.normal) && Array.isArray(rec.x)) {
+        const o = rec.origin as Vec3, n = rec.normal as Vec3;
+        const d = o[0] * n[0] + o[1] * n[1] + o[2] * n[2];
+        return decodeFsValue(encode({ origin: [n[0] * d, n[1] * d, n[2] * d], normal: n, x: rec.x }));
+      }
+    }
+    return undefined;
+  }
+
   async massProperties(): Promise<MassPropertiesBody | undefined> {
     this.calls++;
     const ev = this.lastSolid ? this.world.evidence[this.lastSolid] : undefined;
     if (this.overrides.massProperties) return this.overrides.massProperties(this.lastSolid, ev);
     if (!ev) return undefined;
     const c = ev.centerOfMass ?? [0, 0, 0];
-    return { hasMass: true, volume: [ev.volume, ev.volume, ev.volume], periphery: [ev.area, ev.area, ev.area], centroid: [...c, ...c, ...c] };
+    // Like the live API with no material assigned: hasMass false and a zero centroid.
+    return { hasMass: false, volume: [ev.volume, ev.volume, ev.volume], periphery: [ev.area, ev.area, ev.area], centroid: [0, 0, 0, 0, 0, 0, 0, 0, 0] };
   }
 
   async deleteFeature(_ref: DocumentRef, featureId: string): Promise<void> {
@@ -97,13 +117,13 @@ export class FakeOnshape implements OnshapeApi {
 
 /** Wrap plain values the way `POST .../featurescript` does. */
 export function encode(v: unknown): unknown {
-  if (v === undefined) return { btType: "BTFSValueUndefined-2037" };
+  if (v === undefined) return { btType: "com.belmonttech.serialize.fsvalue.BTFSValueUndefined" };
   if (typeof v === "number") return { btType: "BTFSValueNumber-772", value: v };
   if (typeof v === "string") return { btType: "BTFSValueString-1422", value: v };
   if (typeof v === "boolean") return { btType: "BTFSValueBoolean-1195", value: v };
-  if (Array.isArray(v)) return { btType: "BTFSValueArray-1499", value: v.map(encode) };
+  if (Array.isArray(v)) return { btType: "com.belmonttech.serialize.fsvalue.BTFSValueArray", value: v.map(encode) };
   if (typeof v === "object" && v !== null) {
-    return { btType: "BTFSValueMap-2077", value: Object.entries(v).map(([k, val]) => ({ key: encode(k), value: encode(val) })) };
+    return { btType: "com.belmonttech.serialize.fsvalue.BTFSValueMap", value: Object.entries(v).map(([k, val]) => ({ key: encode(k), value: encode(val) })) };
   }
   throw new Error(`cannot encode ${typeof v}`);
 }

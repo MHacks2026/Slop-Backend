@@ -12,77 +12,315 @@
     "features": [
       {
         "id": "f1",
-        "src": { "name": "Sketch1", "type": "ProfileFeature" },
+        "src": {
+          "name": "Sketch1",
+          "type": "ProfileFeature"
+        },
         "op": "sketch",
         "suppressed": false,
-        "fidelity": { "rung": "pending" },
-        "plane": { "kind": "datum", "name": "FRONT" },
-        "transform": [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+        "fidelity": {
+          "rung": "pending"
+        },
+        "plane": {
+          "kind": "datum",
+          "name": "FRONT"
+        },
+        "transform": [
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          1
+        ],
         "entities": [
-          { "id": "l1", "type": "line", "construction": false, "p0": [0, 0], "p1": [0.05, 0] },
-          { "id": "l2", "type": "line", "construction": false, "p0": [0.05, 0], "p1": [0.05, 0.03] },
-          { "id": "l3", "type": "line", "construction": false, "p0": [0.05, 0.03], "p1": [0, 0.03] },
-          { "id": "l4", "type": "line", "construction": false, "p0": [0, 0.03], "p1": [0, 0] }
+          {
+            "id": "l1",
+            "type": "line",
+            "construction": false,
+            "p0": [
+              0,
+              0
+            ],
+            "p1": [
+              0.05,
+              0
+            ]
+          },
+          {
+            "id": "l2",
+            "type": "line",
+            "construction": false,
+            "p0": [
+              0.05,
+              0
+            ],
+            "p1": [
+              0.05,
+              0.03
+            ]
+          },
+          {
+            "id": "l3",
+            "type": "line",
+            "construction": false,
+            "p0": [
+              0.05,
+              0.03
+            ],
+            "p1": [
+              0,
+              0.03
+            ]
+          },
+          {
+            "id": "l4",
+            "type": "line",
+            "construction": false,
+            "p0": [
+              0,
+              0.03
+            ],
+            "p1": [
+              0,
+              0
+            ]
+          }
         ],
         "constraints": [
-          { "type": "horizontal", "args": ["l1"] },
-          { "type": "horizontal", "args": ["l3"] },
-          { "type": "vertical", "args": ["l2"] },
-          { "type": "vertical", "args": ["l4"] },
-          { "type": "coincident", "args": ["l1.start", "ORIGIN"] },
-          { "type": "coincident", "args": ["l1.end", "l2.start"] },
-          { "type": "coincident", "args": ["l2.end", "l3.start"] },
-          { "type": "coincident", "args": ["l3.end", "l4.start"] },
-          { "type": "coincident", "args": ["l4.end", "l1.start"] }
+          {
+            "type": "horizontal",
+            "args": [
+              "l1"
+            ]
+          },
+          {
+            "type": "horizontal",
+            "args": [
+              "l3"
+            ]
+          },
+          {
+            "type": "vertical",
+            "args": [
+              "l2"
+            ]
+          },
+          {
+            "type": "vertical",
+            "args": [
+              "l4"
+            ]
+          },
+          {
+            "type": "coincident",
+            "args": [
+              "l1.start",
+              "ORIGIN"
+            ]
+          },
+          {
+            "type": "coincident",
+            "args": [
+              "l1.end",
+              "l2.start"
+            ]
+          },
+          {
+            "type": "coincident",
+            "args": [
+              "l2.end",
+              "l3.start"
+            ]
+          },
+          {
+            "type": "coincident",
+            "args": [
+              "l3.end",
+              "l4.start"
+            ]
+          },
+          {
+            "type": "coincident",
+            "args": [
+              "l4.end",
+              "l1.start"
+            ]
+          }
         ],
         "dimensions": [
-          { "id": "D1@Sketch1", "type": "distance", "args": ["l1"], "value": { "expr": "50 mm", "value": 0.05, "unit": "m" }, "driving": true },
-          { "id": "D2@Sketch1", "type": "distance", "args": ["l2"], "value": { "expr": "30 mm", "value": 0.03, "unit": "m" }, "driving": true }
+          {
+            "id": "D1@Sketch1",
+            "type": "distance",
+            "args": [
+              "l1"
+            ],
+            "value": {
+              "expr": "50 mm",
+              "value": 0.05,
+              "unit": "m"
+            },
+            "driving": true
+          },
+          {
+            "id": "D2@Sketch1",
+            "type": "distance",
+            "args": [
+              "l2"
+            ],
+            "value": {
+              "expr": "30 mm",
+              "value": 0.03,
+              "unit": "m"
+            },
+            "driving": true
+          }
         ]
       },
       {
         "id": "f2",
-        "src": { "name": "Boss-Extrude1", "type": "Extrusion" },
+        "src": {
+          "name": "Boss-Extrude1",
+          "type": "Extrusion"
+        },
         "op": "extrude",
         "suppressed": false,
-        "fidelity": { "rung": "pending" },
+        "fidelity": {
+          "rung": "pending"
+        },
         "mode": "new",
-        "profile": { "kind": "feature-output", "feature": "f1", "role": "region", "index": 0 },
+        "profile": {
+          "kind": "feature-output",
+          "feature": "f1",
+          "role": "region",
+          "index": 0
+        },
         "flip": false,
-        "end": { "type": "blind", "depth": { "expr": "10 mm", "value": 0.01, "unit": "m" } },
+        "end": {
+          "type": "blind",
+          "depth": {
+            "expr": "10 mm",
+            "value": 0.01,
+            "unit": "m"
+          }
+        },
         "evidence": {
           "bodyCount": 1,
-          "volume": 1.5e-5,
-          "area": 4.6e-3,
-          "centerOfMass": [0.025, 0.015, 0.005],
-          "bbox": { "min": [0, 0, 0], "max": [0.05, 0.03, 0.01] },
+          "volume": 1.5e-05,
+          "area": 0.0046,
+          "centerOfMass": [
+            0.025,
+            0.015,
+            0.005
+          ],
+          "bbox": {
+            "min": [
+              0,
+              0,
+              0
+            ],
+            "max": [
+              0.05,
+              0.03,
+              0.01
+            ]
+          },
           "faceCount": 6,
           "edgeCount": 12,
           "vertexCount": 8,
-          "faceTypes": { "plane": 6 }
+          "faceTypes": {
+            "plane": 6
+          }
         }
       },
       {
         "id": "f3",
-        "src": { "name": "Sketch2", "type": "ProfileFeature" },
+        "src": {
+          "name": "Sketch2",
+          "type": "ProfileFeature"
+        },
         "op": "sketch",
         "suppressed": false,
-        "fidelity": { "rung": "pending" },
+        "fidelity": {
+          "rung": "pending"
+        },
         "plane": {
           "kind": "topo",
           "entity": "face",
           "createdBy": "f2",
           "role": "capEnd",
           "srcPersistId": "sw:persist:0001",
-          "signature": { "surface": "plane", "normal": [0, 0, 1], "offset": 0.01, "centroid": [0.025, 0.015, 0.01], "area": 1.5e-3 }
+          "signature": {
+            "surface": "plane",
+            "normal": [
+              0,
+              0,
+              1
+            ],
+            "offset": 0.01,
+            "centroid": [
+              0.025,
+              0.015,
+              0.01
+            ],
+            "area": 0.0015
+          }
         },
-        "transform": [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0.01, 0, 0, 0, 1],
+        "transform": [
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0.01,
+          0,
+          0,
+          0,
+          1
+        ],
         "entities": [
-          { "id": "c1", "type": "circle", "construction": false, "center": [0.025, 0.015], "r": 0.0025 }
+          {
+            "id": "c1",
+            "type": "circle",
+            "construction": false,
+            "center": [
+              0.025,
+              0.015
+            ],
+            "r": 0.0025
+          }
         ],
         "constraints": [],
         "dimensions": [
-          { "id": "D1@Sketch2", "type": "diameter", "args": ["c1"], "value": { "expr": "5 mm", "value": 0.005, "unit": "m" }, "driving": true },
+          {
+            "id": "D1@Sketch2",
+            "type": "diameter",
+            "args": [
+              "c1"
+            ],
+            "value": {
+              "expr": "5 mm",
+              "value": 0.005,
+              "unit": "m"
+            },
+            "driving": true
+          },
           {
             "id": "D2@Sketch2",
             "type": "distance",
@@ -94,10 +332,27 @@
                 "createdBy": "f2",
                 "role": "edge:capEnd|sideWall:l4",
                 "srcPersistId": "sw:persist:0002",
-                "signature": { "curve": "line", "midpoint": [0, 0.015, 0.01], "length": 0.03, "direction": [0, 1, 0] }
+                "signature": {
+                  "curve": "line",
+                  "midpoint": [
+                    0,
+                    0.015,
+                    0.01
+                  ],
+                  "length": 0.03,
+                  "direction": [
+                    0,
+                    1,
+                    0
+                  ]
+                }
               }
             ],
-            "value": { "expr": "25 mm", "value": 0.025, "unit": "m" },
+            "value": {
+              "expr": "25 mm",
+              "value": 0.025,
+              "unit": "m"
+            },
             "driving": true
           },
           {
@@ -111,41 +366,97 @@
                 "createdBy": "f2",
                 "role": "edge:capEnd|sideWall:l1",
                 "srcPersistId": "sw:persist:0003",
-                "signature": { "curve": "line", "midpoint": [0.025, 0, 0.01], "length": 0.05, "direction": [1, 0, 0] }
+                "signature": {
+                  "curve": "line",
+                  "midpoint": [
+                    0.025,
+                    0,
+                    0.01
+                  ],
+                  "length": 0.05,
+                  "direction": [
+                    1,
+                    0,
+                    0
+                  ]
+                }
               }
             ],
-            "value": { "expr": "15 mm", "value": 0.015, "unit": "m" },
+            "value": {
+              "expr": "15 mm",
+              "value": 0.015,
+              "unit": "m"
+            },
             "driving": true
           }
         ]
       },
       {
         "id": "f4",
-        "src": { "name": "Cut-Extrude1", "type": "Cut" },
+        "src": {
+          "name": "Cut-Extrude1",
+          "type": "Cut"
+        },
         "op": "extrude",
         "suppressed": false,
-        "fidelity": { "rung": "pending" },
+        "fidelity": {
+          "rung": "pending"
+        },
         "mode": "remove",
-        "profile": { "kind": "feature-output", "feature": "f3", "role": "region", "index": 0 },
+        "profile": {
+          "kind": "feature-output",
+          "feature": "f3",
+          "role": "region",
+          "index": 0
+        },
         "flip": true,
-        "end": { "type": "throughAll" },
+        "end": {
+          "type": "throughAll"
+        },
         "evidence": {
           "bodyCount": 1,
-          "volume": 1.48036505e-5,
-          "area": 4.71781e-3,
-          "centerOfMass": [0.025, 0.015, 0.005],
-          "bbox": { "min": [0, 0, 0], "max": [0.05, 0.03, 0.01] },
+          "volume": 1.4803650459e-05,
+          "area": 0.00471780972451,
+          "centerOfMass": [
+            0.025,
+            0.015,
+            0.005
+          ],
+          "bbox": {
+            "min": [
+              0,
+              0,
+              0
+            ],
+            "max": [
+              0.05,
+              0.03,
+              0.01
+            ]
+          },
           "faceCount": 7,
-          "faceTypes": { "plane": 6, "cylinder": 1 }
+          "faceTypes": {
+            "plane": 6,
+            "cylinder": 1
+          }
         }
       },
       {
         "id": "f5",
-        "src": { "name": "Fillet1", "type": "Fillet" },
+        "src": {
+          "name": "Fillet1",
+          "type": "Fillet"
+        },
         "op": "fillet",
         "suppressed": false,
-        "fidelity": { "rung": "pending" },
-        "radius": { "expr": "2 mm", "value": 0.002, "unit": "m" },
+        "fidelity": {
+          "rung": "pending"
+        },
+        "radius": {
+          "expr": "2 mm",
+          "value": 0.002,
+          "unit": "m"
+        },
         "tangentPropagation": true,
         "edges": [
           {
@@ -154,17 +465,44 @@
             "createdBy": "f4",
             "role": "edge:sideWall|capEnd:f2",
             "srcPersistId": "sw:persist:0004",
-            "signature": { "curve": "circle", "radius": 0.0025, "center": [0.025, 0.015, 0.01] },
-            "probe": [0.0275, 0.015, 0.01]
+            "signature": {
+              "curve": "circle",
+              "radius": 0.0025,
+              "center": [
+                0.025,
+                0.015,
+                0.01
+              ]
+            },
+            "probe": [
+              0.0275,
+              0.015,
+              0.01
+            ]
           }
         ],
         "evidence": {
           "bodyCount": 1,
-          "volume": 1.478776e-5,
-          "area": 4.70611e-3,
-          "bbox": { "min": [0, 0, 0], "max": [0.05, 0.03, 0.01] },
+          "volume": 1.4787757144e-05,
+          "area": 0.004706105199205,
+          "bbox": {
+            "min": [
+              0,
+              0,
+              0
+            ],
+            "max": [
+              0.05,
+              0.03,
+              0.01
+            ]
+          },
           "faceCount": 8,
-          "faceTypes": { "plane": 6, "cylinder": 1, "torus": 1 }
+          "faceTypes": {
+            "plane": 6,
+            "cylinder": 1,
+            "torus": 1
+          }
         }
       }
     ]

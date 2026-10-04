@@ -46,6 +46,23 @@ export interface PlaneFrame {
 
 export const planeY = (f: PlaneFrame): Vec3 => cross(f.normal, f.x);
 
+/**
+ * The coordinate system Onshape gives a sketch on this plane. Verified live:
+ * `evSurfaceDefinition`/`evPlane` report a face's centroid as `origin`, but
+ * `evOwnerSketchPlane` of the resulting sketch has its origin at the world
+ * origin projected onto the plane (x axis unchanged). Sketch coordinates must
+ * be expressed in the latter or the geometry lands offset by the centroid.
+ */
+export function sketchFrameOf(f: PlaneFrame): PlaneFrame {
+  const n = normalize(f.normal);
+  // World origin projected onto the plane: n * (p . n) for any point p on it.
+  const origin = scale(n, dot(f.origin, n));
+  return { origin, normal: n, x: normalize(f.x) };
+}
+
+export const sameFrame = (a: PlaneFrame, b: PlaneFrame, tol = 1e-6): boolean =>
+  dist(a.origin, b.origin) <= tol && dist(normalize(a.normal), normalize(b.normal)) <= tol && dist(normalize(a.x), normalize(b.x)) <= tol;
+
 export function toPlaneCoords(f: PlaneFrame, p: Vec3): Vec2 {
   const d = sub(p, f.origin);
   return [dot(d, f.x), dot(d, planeY(f))];

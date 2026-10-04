@@ -1,9 +1,9 @@
 import type { EntityType, Vec3 } from "@slop/ir";
 import type { OnshapeApi } from "../client/api.ts";
 import type { DocumentRef } from "../client/types.ts";
-import { isVec3, type PlaneFrame } from "../geometry.ts";
+import { isVec3, sketchFrameOf, type PlaneFrame } from "../geometry.ts";
 import { isRecord } from "./values.ts";
-import { bodyStatsScript, topologyScript } from "./scripts.ts";
+import { bodyStatsScript, sketchPlaneScript, topologyScript } from "./scripts.ts";
 
 /** One Onshape entity with the geometry the resolver scores against. */
 export interface Candidate {
@@ -33,6 +33,8 @@ export interface BodyStats {
   edgeCount: number;
   vertexCount: number;
   faceTypes: Record<string, number>;
+  /** Volume centroid of all solid bodies (m), when any exist. */
+  centroid?: Vec3;
 }
 
 /** Entities created by `featureId`, with signatures. */
@@ -50,13 +52,21 @@ export async function queryBodyStats(api: OnshapeApi, ref: DocumentRef): Promise
   if (isRecord(raw.faceTypes)) {
     for (const [k, v] of Object.entries(raw.faceTypes)) if (typeof v === "number") faceTypes[k.toLowerCase()] = v;
   }
-  return { bodyCount: n("bodyCount"), faceCount: n("faceCount"), edgeCount: n("edgeCount"), vertexCount: n("vertexCount"), faceTypes };
+  const centroid = isVec3(raw.centroid) ? raw.centroid : undefined;
+  return { bodyCount: n("bodyCount"), faceCount: n("faceCount"), edgeCount: n("edgeCount"), vertexCount: n("vertexCount"), faceTypes, ...(centroid ? { centroid } : {}) };
 }
 
-/** Frame of a planar face candidate (sketch plane coordinate system). */
+/** Sketch coordinate system Onshape will use for a planar face candidate (see `sketchFrameOf`). */
 export function frameOf(c: Candidate): PlaneFrame {
   if (c.type !== "plane" || !c.origin || !c.normal || !c.x) throw new Error(`entity ${c.id} is not a planar face with a frame`);
-  return { origin: c.origin, normal: c.normal, x: c.x };
+  return sketchFrameOf({ origin: c.origin, normal: c.normal, x: c.x });
+}
+
+/** The plane Onshape actually gave an existing sketch, or undefined if the API cannot say. */
+export async function querySketchPlane(api: OnshapeApi, ref: DocumentRef, sketchFeatureId: string): Promise<PlaneFrame | undefined> {
+  const raw = await api.evaluateFeatureScript(ref, sketchPlaneScript(sketchFeatureId));
+  if (!isRecord(raw) || !isVec3(raw.origin) || !isVec3(raw.normal) || !isVec3(raw.x)) return undefined;
+  return { origin: raw.origin, normal: raw.normal, x: raw.x };
 }
 
 function parseCandidate(r: unknown, entity: EntityType): Candidate {
