@@ -1,9 +1,10 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { agentRoutes, agentUserRoutes } from "./agents";
 import { buildRoutes } from "./builds";
 import { setCustomClaims, verifyIdToken } from "./firebase";
 import { checkOnshapeKeys, onshapeCredentialRoutes } from "./onshape-credentials";
-import { supabaseBuildsDb, supabaseOnshapeCredentialsDb } from "./supabase";
+import { supabaseAgentsDb, supabaseBuildsDb, supabaseOnshapeCredentialsDb } from "./supabase";
 
 const app = new Hono<{ Bindings: CloudflareBindings }>();
 
@@ -29,6 +30,29 @@ app.all("/api/me/onshape", (c) => mountOnshapeCredentials(c.env).fetch(c.req.raw
 function mountOnshapeCredentials(env: CloudflareBindings) {
   const root = new Hono();
   root.route("/api", onshapeCredentialRoutes({ verifyToken: firebaseUser(env), checkKeys: checkOnshapeKeys, db: supabaseOnshapeCredentialsDb(env) }));
+  return root;
+}
+
+// SOLIDWORKS agents. The user pairs an agent and asks it for extractions:
+//   POST/GET /api/agents, DELETE /api/agents/:id,
+//   POST /api/projects/:projectId/extractions, GET /api/extractions/:id
+// The agent, with its own token: POST /api/agent/poll,
+//   POST /api/agent/extractions/:id/{progress,result,fail}
+app.all("/api/agents", (c) => mountAgentUser(c.env).fetch(c.req.raw));
+app.all("/api/agents/:id", (c) => mountAgentUser(c.env).fetch(c.req.raw));
+app.all("/api/projects/:projectId/extractions", (c) => mountAgentUser(c.env).fetch(c.req.raw));
+app.all("/api/extractions/:id", (c) => mountAgentUser(c.env).fetch(c.req.raw));
+app.all("/api/agent/*", (c) => mountAgent(c.env).fetch(c.req.raw));
+
+function mountAgentUser(env: CloudflareBindings) {
+  const root = new Hono();
+  root.route("/api", agentUserRoutes({ verifyToken: firebaseUser(env), db: supabaseAgentsDb(env) }));
+  return root;
+}
+
+function mountAgent(env: CloudflareBindings) {
+  const root = new Hono();
+  root.route("/api", agentRoutes({ db: supabaseAgentsDb(env) }));
   return root;
 }
 

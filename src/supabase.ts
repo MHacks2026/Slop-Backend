@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import type { AgentRow, AgentsDb, ExtractionRow } from "./agents";
 import { DbError, type BuildEventRow, type BuildRow, type BuildsDb } from "./builds";
 import type { OnshapeCredentialsDb } from "./onshape-credentials";
 
@@ -90,6 +91,102 @@ export function supabaseOnshapeCredentialsDb(env: SupabaseEnv): OnshapeCredentia
       const { data, error } = await sb.from("onshape_credentials").delete().eq("user_id", uid).select("user_id");
       if (error) fail("onshape_credentials", error);
       return (data ?? []).length > 0;
+    },
+  };
+}
+
+const AGENT_COLUMNS = "id, owner_id, name, status, last_seen_at, created_at, revoked_at";
+
+/**
+ * Service-role access to agents and extractions. Errors carry Postgres's own
+ * message without a prefix: request_extraction's are shown to users as is
+ * ("the SOLIDWORKS agent is offline").
+ */
+export function supabaseAgentsDb(env: SupabaseEnv): AgentsDb {
+  const sb = createClient(env.SUPABASE_URL, env.SUPABASE_SECRET_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
+
+  const raise = (error: { message: string; code?: string }): never => {
+    throw new DbError(error.message, error.code);
+  };
+
+  return {
+    async createAgent({ ownerId, name, tokenHash }) {
+      const { data, error } = await sb.from("agents").insert({ owner_id: ownerId, name, token_hash: tokenHash }).select(AGENT_COLUMNS).single();
+      if (error) raise(error);
+      return data as AgentRow;
+    },
+
+    async listAgents(ownerId) {
+      const { data, error } = await sb.from("agents").select(AGENT_COLUMNS).eq("owner_id", ownerId).is("revoked_at", null).order("created_at");
+      if (error) raise(error);
+      return (data as AgentRow[] | null) ?? [];
+    },
+
+    async revokeAgent(id, ownerId) {
+      const { data, error } = await sb
+        .from("agents")
+        .update({ revoked_at: new Date().toISOString() })
+        .eq("id", id)
+        .eq("owner_id", ownerId)
+        .is("revoked_at", null)
+        .select("id");
+      if (error) raise(error);
+      return (data ?? []).length > 0;
+    },
+
+    async agentByTokenHash(tokenHash) {
+      const { data, error } = await sb.from("agents").select("id, owner_id").eq("token_hash", tokenHash).is("revoked_at", null).maybeSingle();
+      if (error) raise(error);
+      return (data as { id: string; owner_id: string } | null) ?? null;
+    },
+
+    async requestExtraction({ projectId, uid, agentId, target, planner, behavior }) {
+      const { data, error } = await sb.rpc("request_extraction", {
+        p_project_id: projectId,
+        p_agent_id: agentId,
+        p_target: target,
+        p_planner: planner,
+        p_behavior: behavior,
+        p_uid: uid,
+      });
+      if (error) raise(error);
+      return data as string;
+    },
+
+    async getExtraction(id) {
+      const { data, error } = await sb.from("extractions").select("*").eq("id", id).maybeSingle();
+      if (error) raise(error);
+      return (data as ExtractionRow | null) ?? null;
+    },
+
+    async canReadProject(projectId, uid) {
+      const { data, error } = await sb.rpc("can_read_project_as", { p_project: projectId, p_uid: uid });
+      if (error) raise(error);
+      return data === true;
+    },
+
+    async poll(agentId, status) {
+      const { data, error } = await sb.rpc("agent_poll", { p_agent_id: agentId, p_status: status });
+      if (error) raise(error);
+      return ((data ?? []) as ExtractionRow[])[0] ?? null;
+    },
+
+    async progress(extractionId, agentId, line) {
+      const { data, error } = await sb.rpc("agent_progress", { p_extraction_id: extractionId, p_agent_id: agentId, p_line: line });
+      if (error) raise(error);
+      return (data as string | null) ?? null;
+    },
+
+    async complete(extractionId, agentId, ir, report) {
+      const { data, error } = await sb.rpc("complete_extraction", { p_extraction_id: extractionId, p_agent_id: agentId, p_ir: ir, p_report: report });
+      if (error) raise(error);
+      return data as string;
+    },
+
+    async fail(extractionId, agentId, message, report) {
+      const { data, error } = await sb.rpc("fail_extraction", { p_extraction_id: extractionId, p_agent_id: agentId, p_error: message, p_report: report });
+      if (error) raise(error);
+      return data === true;
     },
   };
 }
