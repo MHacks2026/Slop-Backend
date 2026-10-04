@@ -2,11 +2,16 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { buildRoutes } from "./builds";
 import { setCustomClaims, verifyIdToken } from "./firebase";
-import { supabaseBuildsDb } from "./supabase";
+import { checkOnshapeKeys, onshapeCredentialRoutes } from "./onshape-credentials";
+import { supabaseBuildsDb, supabaseOnshapeCredentialsDb } from "./supabase";
 
 const app = new Hono<{ Bindings: CloudflareBindings }>();
 
 app.use("/api/*", cors());
+
+function firebaseUser(env: CloudflareBindings) {
+  return async (token: string) => ({ uid: (await verifyIdToken(env, token)).sub });
+}
 
 // Builds: POST /api/projects/:projectId/builds, GET /api/builds/:id, GET /api/builds/:id/events
 app.all("/api/projects/:projectId/builds", (c) => mountBuilds(c.env).fetch(c.req.raw));
@@ -14,13 +19,16 @@ app.all("/api/builds/*", (c) => mountBuilds(c.env).fetch(c.req.raw));
 
 function mountBuilds(env: CloudflareBindings) {
   const root = new Hono();
-  root.route(
-    "/api",
-    buildRoutes({
-      verifyToken: async (token) => ({ uid: (await verifyIdToken(env, token)).sub }),
-      db: supabaseBuildsDb(env),
-    }),
-  );
+  root.route("/api", buildRoutes({ verifyToken: firebaseUser(env), db: supabaseBuildsDb(env) }));
+  return root;
+}
+
+// The user's Onshape API keys: PUT (sent once, at sign-up), GET, DELETE /api/me/onshape
+app.all("/api/me/onshape", (c) => mountOnshapeCredentials(c.env).fetch(c.req.raw));
+
+function mountOnshapeCredentials(env: CloudflareBindings) {
+  const root = new Hono();
+  root.route("/api", onshapeCredentialRoutes({ verifyToken: firebaseUser(env), checkKeys: checkOnshapeKeys, db: supabaseOnshapeCredentialsDb(env) }));
   return root;
 }
 

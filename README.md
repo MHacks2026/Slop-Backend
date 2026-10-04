@@ -15,6 +15,16 @@ Supabase only accepts Firebase tokens that carry the custom claim `role: "authen
 
 The Worker does this instead of a Firebase Cloud Function, so the Blaze plan isn't needed. It overwrites any other custom claims on the user.
 
+### Sign-up
+
+The sign-up form asks for an email, a password, a username, and the user's Onshape API access key and secret key (Onshape → [Developer portal](https://dev-portal.onshape.com) → API keys). The keys are entered once; every build the user requests runs with them, and its Onshape document lands in their Onshape account.
+
+1. `createUserWithEmailAndPassword(email, password)`. The password goes to Firebase only.
+2. `POST /api/auth/claim`, then `getIdToken(true)` (above).
+3. `ensure_profile({ p_username })`. The profile must exist before the keys are saved.
+4. `PUT /api/me/onshape` with `{ accessKey, secretKey }` (below). On 400, show the error next to the key fields and let the user retry; the account already exists.
+5. `accept_pending_invites`.
+
 ## Setup
 
 Requires Node 22 (`nvm use`).
@@ -24,7 +34,7 @@ Requires Node 22 (`nvm use`).
    - `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`: Firebase console → Project settings → Service accounts → *Generate new private key*. Take `project_id`, `client_email` and `private_key` from the JSON. Keep the `\n` escapes and quote the key.
 2. **Enable the Firebase integration in Supabase.** Supabase dashboard → Authentication → Sign In / Providers → Third-party auth → *Add provider* → Firebase, with project ID `mhacks-2026`.
 3. **Enable sign-in methods in Firebase.** Firebase console → Authentication → Sign-in method → turn on *Email/Password*.
-4. **Apply migrations** in order: `0001_cad_hub_schema.sql`, then `0002_firebase_auth.sql`. Either run `npx supabase db push` after `npx supabase link`, or paste each file into the Supabase SQL editor.
+4. **Apply migrations** in order, `0001` through `0005`. Either run `npx supabase db push` after `npx supabase link`, or paste each file into the Supabase SQL editor.
 5. **Run the Worker:** `npm install && npm run dev` (serves on `http://localhost:8787`).
 
 ## Deploy
@@ -37,6 +47,18 @@ npm run deploy
 
 After deploying, set the frontend's `VITE_API_URL` to the Worker's URL.
 
+## Onshape keys
+
+One Onshape API key per user, which has two parts, both stored in Supabase (`0005_onshape_credentials.sql`): the **access key** in `onshape_credentials.access_key`, and the **secret key** encrypted in Supabase Vault, referenced by `onshape_credentials.secret_key_vault_id`. Clients can't read the table; the Worker writes it and the runner reads it, both with the service role.
+
+```
+PUT    /api/me/onshape   { accessKey, secretKey }  -> 200 { connected: true, accessKeyHint: "…abcd", onshapeUser: { id, name }, verifiedAt }
+GET    /api/me/onshape                             -> the same, or { connected: false }
+DELETE /api/me/onshape                             -> { connected: false }
+```
+
+`PUT` checks the keys against Onshape (`/users/sessioninfo`) before storing them, and replaces any keys already on file. Errors: 400 when the body is malformed or Onshape rejects the keys, 409 when the user has no profile yet (`ensure_profile` first), 502 when Onshape can't be reached. The secret key is never returned.
+
 ## Builds: SolidWorks IR → Onshape
 
 A *build* takes an IR document (produced on the user's machine by the extractor) and rebuilds it in Onshape feature by feature, with per-feature checks and Level 3 behaviour tests. Three pieces:
@@ -45,7 +67,7 @@ A *build* takes an IR document (produced on the user's machine by the extractor)
 |---|---|---|
 | Tables `builds`, `build_events`; RPCs `request_build`, `claim_build` | `supabase/migrations/0004_builds.sql` | Queue, progress stream (Realtime-enabled), results. The web app uses these directly. |
 | Worker routes | `src/builds.ts` | For clients without a Supabase SDK, chiefly the extractor. Firebase token in `Authorization: Bearer`. |
-| Runner | `packages/runner` | Claims queued builds, runs `@slop/onshape` with the Onshape/LLM keys, writes events and the report. |
+| Runner | `packages/runner` | Claims queued builds, runs `@slop/onshape` with the requester's Onshape keys and the server's LLM key, writes events and the report. |
 
 Worker routes:
 
@@ -57,12 +79,14 @@ GET  /api/builds/:id/events?after=<seq>&limit=<n>                               
 
 Event kinds, in order: `document` (Onshape ids and URL, as soon as the document exists), one `feature` per IR feature as it finishes, one `behavior` per behaviour test, `log` lines throughout, and `finished` last. Full IR validation happens in the runner; the Worker only checks the shape.
 
-Run the runner on any machine with the keys (for a demo, a laptop):
+Run the runner on any machine with the Supabase service key and the Anthropic key (for a demo, a laptop):
 
 ```sh
-cp packages/onshape/.env.example packages/onshape/.env   # Onshape + Anthropic keys
+cp packages/onshape/.env.example packages/onshape/.env   # Anthropic key; Onshape keys optional (see --env-keys)
 npm run runner                                           # polls Supabase; --once to process one build and exit
 ```
+
+Each build runs with the Onshape keys of the user who requested it. A build whose requester has none fails with "No Onshape API keys stored". For local development, `npm run runner -- --env-keys` falls back to the keys in `packages/onshape/.env` instead, so those documents land in that account.
 
 Queue a build from the command line with a Firebase ID token:
 
@@ -79,5 +103,6 @@ curl -X POST "$VITE_API_URL/api/projects/<project-id>/builds" -H "Authorization:
 | `0002_firebase_auth.sql` | Firebase UIDs (`text`) in place of `auth.users` UUIDs, `current_uid()`, `ensure_profile`, private `profiles.email`, owner-protection trigger, `project_invites` + `add_member_by_identifier` / `accept_pending_invites`, `exports` / `export_items` + `request_export`, Realtime for export progress |
 | `0003_export_triggers.sql` | pg_net triggers that call the `bundle-export` Edge Function when an export can be zipped |
 | `0004_builds.sql` | `builds` + `build_events`, `request_build` (contributors), `claim_build` (runner), `can_read_project_as` (Worker), Realtime for build progress |
+| `0005_onshape_credentials.sql` | `onshape_credentials` (one per user; secret key in Vault), `set_onshape_credentials` (Worker), `build_onshape_credentials` (runner) |
 
 `profiles.email` is hidden with column-level grants, so clients must list profile columns explicitly (`select("id, username, display_name, avatar_url")`). `select("*")` on `profiles` returns a permission error.

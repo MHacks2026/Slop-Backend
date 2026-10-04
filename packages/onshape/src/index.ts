@@ -5,7 +5,7 @@ export type { OnshapeApi } from "./client/api.ts";
 export { OnshapeHttp, OnshapeHttpError, OnshapeQuotaError } from "./client/http.ts";
 export { basicAuth, hmacAuth } from "./client/auth.ts";
 export type * from "./client/types.ts";
-export { loadConfig, loadClaudeConfig, loadEnvFiles } from "./env.ts";
+export { loadConfig, loadClaudeConfig, loadEnvFiles, configForKeys } from "./env.ts";
 export type { OnshapeConfig, ClaudeEnv } from "./env.ts";
 export { runBehaviorTests, locateDimension, normalizeExpression } from "./behavior.ts";
 export type { BehaviorCase, BehaviorResult, BehaviorStatus, BehaviorOptions } from "./behavior.ts";

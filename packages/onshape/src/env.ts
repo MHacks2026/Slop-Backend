@@ -45,10 +45,20 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): OnshapeConfig 
         `Copy packages/onshape/.env.example to packages/onshape/.env and fill it in.`,
     );
   }
+  return configForKeys(env.ONSHAPE_ACCESS_KEY!, secretKey!, env);
+}
+
+/**
+ * Config for keys that came from somewhere other than the environment (the
+ * runner reads each user's keys from the database). Base URL, auth scheme
+ * and API version still come from the environment, with the same defaults.
+ */
+export function configForKeys(accessKey: string, secretKey: string, env: NodeJS.ProcessEnv = process.env): OnshapeConfig {
+  loadEnvFiles();
   return {
     baseUrl: (env.ONSHAPE_BASE_URL ?? "https://cad.onshape.com").replace(/\/+$/, ""),
-    accessKey: env.ONSHAPE_ACCESS_KEY!,
-    secretKey: secretKey!,
+    accessKey,
+    secretKey,
     authScheme: env.ONSHAPE_AUTH_SCHEME === "hmac" ? "hmac" : "basic",
     apiVersion: env.ONSHAPE_API_VERSION ?? "v10",
   };
