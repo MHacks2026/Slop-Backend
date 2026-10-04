@@ -83,13 +83,14 @@ export function composeSketch(input: ComposeSketchInput): ComposedSketch {
 
   const toLocal = input.sourceTransform ? projector(input.sourceTransform, input.frame, input.name) : (p: Vec2) => p;
   const swapHV = input.sourceTransform ? axisSwap(input.sourceTransform, input.frame, input.name) : false;
+  const mirrored = input.sourceTransform ? orientationReversed(input.sourceTransform, input.frame) : false;
 
   const entities: BTSketchEntity[] = [];
   const ids = new Set<string>();
   for (const e of input.entities) {
     if (ids.has(e.id)) throw new SketchComposeError(`duplicate sketch entity id "${e.id}"`);
     ids.add(e.id);
-    entities.push(...mapEntity(e, toLocal));
+    entities.push(...mapEntity(e, toLocal, mirrored));
   }
 
   const constraints: BTSketchConstraint[] = [];
@@ -150,6 +151,15 @@ function projector(transform: Mat4, frame: PlaneFrame, name: string): (p: Vec2) 
   };
 }
 
+/**
+ * True when mapping source (u, v) to Onshape (u', v') flips handedness, i.e.
+ * the source sketch normal points against the Onshape plane normal. Arcs then
+ * sweep the other way in local coordinates.
+ */
+function orientationReversed(transform: Mat4, frame: PlaneFrame): boolean {
+  return dot(normalize(applyDir(transform, [0, 0, 1])), normalize(frame.normal)) < 0;
+}
+
 /** True when the source sketch x axis is the Onshape frame's y axis (90 degree rotation). */
 function axisSwap(transform: Mat4, frame: PlaneFrame, name: string): boolean {
   const srcX = normalize(applyDir(transform, [1, 0, 0]));
@@ -163,9 +173,38 @@ function axisSwap(transform: Mat4, frame: PlaneFrame, name: string): boolean {
 
 // --- entities ----------------------------------------------------------------
 
-function mapEntity(e: SketchEntity, toLocal: (p: Vec2) => Vec2): BTSketchEntity[] {
+function mapEntity(e: SketchEntity, toLocal: (p: Vec2) => Vec2, mirrored: boolean): BTSketchEntity[] {
   const common = { entityId: e.id, ...(e.construction ? { isConstruction: true } : {}) };
   switch (e.type) {
+    case "arc": {
+      // Written as a counter-clockwise circle segment from startParam to endParam
+      // (radians). A clockwise source arc is emitted from p1 to p0 instead, with
+      // the point ids swapped so "a.start" still names the source's start point.
+      // UNVERIFIED JSON: BTMSketchCurveSegment-155 over BTCurveGeometryCircle-115 with angular params.
+      const [cx, cy] = toLocal(e.center);
+      const [x0, y0] = toLocal(e.p0);
+      const [x1, y1] = toLocal(e.p1);
+      const r0 = Math.hypot(x0 - cx, y0 - cy);
+      const r1 = Math.hypot(x1 - cx, y1 - cy);
+      if (r0 === 0 || Math.abs(r0 - r1) > 1e-9) throw new SketchComposeError(`arc ${e.id}: end points are not equidistant from the centre`);
+      const ccw = e.ccw !== mirrored;
+      const [sx, sy, ex, ey] = ccw ? [x0, y0, x1, y1] : [x1, y1, x0, y0];
+      const start = Math.atan2(sy - cy, sx - cx);
+      let end = Math.atan2(ey - cy, ex - cx);
+      if (end <= start) end += 2 * Math.PI;
+      return [
+        {
+          btType: "BTMSketchCurveSegment-155",
+          ...common,
+          geometry: { btType: "BTCurveGeometryCircle-115", radius: r0, xCenter: cx, yCenter: cy, xDir: 1, yDir: 0, clockwise: false },
+          startParam: start,
+          endParam: end,
+          startPointId: ccw ? `${e.id}.start` : `${e.id}.end`,
+          endPointId: ccw ? `${e.id}.end` : `${e.id}.start`,
+          centerId: `${e.id}.center`,
+        },
+      ];
+    }
     case "point": {
       const [x, y] = toLocal(e.p);
       return [{ btType: "BTMSketchPoint-158", ...common, x, y }];
@@ -198,7 +237,6 @@ function mapEntity(e: SketchEntity, toLocal: (p: Vec2) => Vec2): BTSketchEntity[
         },
       ];
     }
-    case "arc":
     case "ellipse":
     case "spline":
       throw new SketchComposeError(`sketch entity type "${e.type}" (${e.id}) is not mapped yet`);

@@ -30,6 +30,8 @@ Selections:
 - {kind:"irRef", irFeature:"f3", path:"plane"}  — resolver cascade; fails if candidates tie
 - {kind:"createdBy", feature:"<plan op id>", entity:"face"|"edge"|"vertex", where?:{type,normal,offset,radius,near}}
 - {kind:"entities", ids:["..."]}  — explicit pick after a tie or from list_topology
+- {kind:"sketchEntity", sketch:"<plan op id>", entity:"l1"}  — a sketch line/arc/point as a selection (revolve axis, pattern direction, hole centre)
+- {kind:"features", features:["<plan op id>", ...]}  — whole features as pattern or mirror seeds
 
 Sketch constraint and dimension args:
 - "l1", "l1.start", "c1.center", "ORIGIN"  — entities of this sketch

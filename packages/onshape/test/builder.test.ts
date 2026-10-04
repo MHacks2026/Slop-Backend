@@ -89,26 +89,30 @@ test("Level 1 divergence stops the build at the offending feature", async () => 
   assert.equal(report.plan.steps.length, 3);
 });
 
-test("an unmapped op is recorded as dropped and later features are not attempted", async () => {
+test("a feature the direct proposers refuse is recorded as dropped and later features are not attempted", async () => {
   const ir = structuredClone(plate);
+  // A countersunk hole: every MVP op has a proposer now, but countersinks are refused rather than approximated.
   ir.partStudio.features.splice(4, 0, {
     id: "f4b",
-    src: { name: "Chamfer1" },
-    op: "chamfer",
+    src: { name: "CSK Hole1" },
+    op: "hole",
     suppressed: false,
     fidelity: { rung: "pending" },
-    spec: { type: "equalDistance", distance: { expr: "1 mm", value: 0.001, unit: "m" } },
-    edges: [{ kind: "topo", entity: "edge", createdBy: "f4" }],
-    tangentPropagation: true,
+    style: "countersink",
+    startFace: { kind: "topo", entity: "face", createdBy: "f2", signature: { surface: "plane", normal: [0, 0, 1], offset: 0.01 } },
+    positions: [{ kind: "topo", entity: "vertex", createdBy: "f4", signature: { point: [0.01, 0.01, 0.01] } }],
+    diameter: { expr: "3 mm", value: 0.003, unit: "m" },
+    end: { type: "throughAll" },
+    countersink: { diameter: { expr: "6 mm", value: 0.006, unit: "m" }, angle: { expr: "90 deg", value: Math.PI / 2, unit: "rad" } },
   });
   ir.partStudio.features[5] = { ...ir.partStudio.features[5]!, edges: [{ kind: "topo", entity: "edge", createdBy: "f4b" }] } as typeof ir.partStudio.features[5];
   assertValidDocument(ir);
 
   const report = await buildDocument(ir, new FakeOnshape(plateWorld(plate)));
-  const chamfer = report.features.find((f) => f.irId === "f4b")!;
-  assert.equal(chamfer.status, "failed");
-  assert.equal(chamfer.rung, "dropped");
-  assert.match(chamfer.error!, /no direct-mapping proposer for op "chamfer"/);
+  const hole = report.features.find((f) => f.irId === "f4b")!;
+  assert.equal(hole.status, "failed");
+  assert.equal(hole.rung, "dropped");
+  assert.match(hole.error!, /countersink holes have no direct proposer/);
   assert.equal(report.features.find((f) => f.irId === "f5"), undefined);
 });
 

@@ -1,9 +1,9 @@
 import type { Constraint, DatumName, Dimension, Document, EntityType, Feature, Parameter, Ref, Rung, SketchArg, TopoRef } from "@slop/ir";
 import type { OnshapeApi } from "../client/api.ts";
 import type { BTFeature, BTMFeature, BTParameter, BTQuery, DocumentRef } from "../client/types.ts";
-import { boolParam, enumParam, idQuery, quantity, queryList, sketchRegionQuery, stringParam } from "../expression.ts";
+import { boolParam, enumParam, featureQuery, idQuery, quantity, queryList, sketchRegionQuery, stringParam } from "../expression.ts";
 import { frameOf, querySketchPlane, queryTopology, type Candidate } from "../fs/topology.ts";
-import { dist, dot, normalize, sameFrame, type PlaneFrame } from "../geometry.ts";
+import { applyPoint, dist, dot, normalize, sameFrame, type PlaneFrame } from "../geometry.ts";
 import { rankCandidates, type RankedCandidate, type ResolveOptions } from "../resolver.ts";
 import { composeSketch, externalArg, parseExternalArg, SketchComposeError } from "../sketch/compose.ts";
 import type { CreateSketchOp, EntityPredicate, Op, ParameterValue, Selection } from "./types.ts";
@@ -16,6 +16,13 @@ import type { CreateSketchOp, EntityPredicate, Op, ParameterValue, Selection } f
  * ASSUMPTION to verify in Phase 0 (open question 2).
  */
 export const DATUM_REMAP: Record<Exclude<DatumName, "ORIGIN">, string> = { FRONT: "Top", TOP: "Front", RIGHT: "Right" };
+
+/** The IR's reference to one entity of an earlier sketch (revolve axis, pattern direction). Not part of the IR `Ref` union. */
+export interface SketchEntityRef {
+  kind: "sketch-entity";
+  sketch: string;
+  entity: string;
+}
 
 /** A selection that resolved to more than one plausible entity: the translator must choose. */
 export class AmbiguousSelectionError extends Error {
@@ -193,7 +200,7 @@ export class Executor implements StepContext {
             name: op.name,
             planeIds: plane.record.deterministicIds,
             frame,
-            ...(irSketch && irSketch.op === "sketch" ? { sourceTransform: irSketch.transform } : {}),
+            ...(op.transform ? { sourceTransform: op.transform } : irSketch && irSketch.op === "sketch" ? { sourceTransform: irSketch.transform } : {}),
             entities: op.entities,
             constraints: resolvedArgs.constraints,
             dimensions: resolvedArgs.dimensions,
@@ -268,7 +275,7 @@ export class Executor implements StepContext {
     for (const sel of p.selections) {
       const r = await this.resolveSelection(opId, p.id, sel);
       selections.push(r.record);
-      queries.push(r.query);
+      queries.push(...(Array.isArray(r.query) ? r.query : [r.query]));
     }
     return { parameter: queryList(p.id, queries), selections };
   }
@@ -327,7 +334,7 @@ export class Executor implements StepContext {
     parameterId: string,
     sel: Selection,
     expectEntity?: EntityType,
-  ): Promise<{ query: BTQuery; record: SelectionRecord; candidate?: Candidate; frame?: PlaneFrame }> {
+  ): Promise<{ query: BTQuery | BTQuery[]; record: SelectionRecord; candidate?: Candidate; frame?: PlaneFrame }> {
     const rec = (ids: string[], resolver: SelectionRecord["resolver"], extra: Partial<SelectionRecord> = {}): SelectionRecord => ({
       opId,
       parameterId,
@@ -366,9 +373,101 @@ export class Executor implements StepContext {
       }
       case "irRef": {
         const ref = this.irRefAt(opId, sel.irFeature, sel.path);
+        if (ref.kind === "sketch-entity") return this.resolveSketchEntity(opId, parameterId, sel, ref.sketch, ref.entity, expectEntity);
         return this.resolveIrRef(opId, parameterId, sel, ref, expectEntity);
       }
+      case "features": {
+        const ids = sel.features.map((f) => {
+          const id = this.onshapeIds.get(f);
+          if (!id) throw new ExecutionError(opId, `feature "${f}" has not been built in this plan`);
+          return id;
+        });
+        return { query: ids.map(featureQuery), record: rec(ids, "feature") };
+      }
+      case "sketchEntity":
+        return this.resolveSketchEntity(opId, parameterId, sel, sel.sketch, sel.entity, expectEntity);
     }
+  }
+
+  /**
+   * A sketch entity as a model selection. Onshape gives sketch curves and
+   * points deterministic ids like any edge or vertex; the one that corresponds
+   * to the IR entity is found by projecting the IR geometry into model space
+   * through the sketch transform and probing the entities the sketch created.
+   * UNVERIFIED: that `qCreatedBy(sketch, VERTEX)` lists sketch points.
+   */
+  private async resolveSketchEntity(opId: string, parameterId: string, sel: Selection, sketchId: string, entityId: string, expectEntity?: EntityType) {
+    // `sketchId` may be a plan op id or an IR feature id (the two coincide in the rules path).
+    let sketchOpId = sketchId;
+    let onshapeSketch = this.onshapeIds.get(sketchOpId);
+    if (!onshapeSketch) {
+      const ops = this.opsFor(sketchId);
+      sketchOpId = ops.find((o) => this.frames.has(o)) ?? ops[0] ?? sketchId;
+      onshapeSketch = this.onshapeIds.get(sketchOpId);
+    }
+    if (!onshapeSketch) throw new ExecutionError(opId, `sketch "${sketchId}" has not been built in this plan`);
+    const irSketch = this.irById.get(sketchId) ?? this.ir.partStudio.features.find((f) => this.opsFor(f.id).includes(sketchOpId));
+    if (!irSketch || irSketch.op !== "sketch") throw new ExecutionError(opId, `"${sketchId}" is not an IR sketch, so entity "${entityId}" has no geometry to match`);
+    const entity = irSketch.entities.find((e) => e.id === entityId);
+    if (!entity) throw new ExecutionError(opId, `sketch "${irSketch.id}" has no entity "${entityId}"`);
+
+    const toModel = (p: readonly [number, number]) => applyPoint(irSketch.transform, [p[0], p[1], 0]);
+    let probe;
+    let entityType: EntityType;
+    let wantType: string | undefined;
+    switch (entity.type) {
+      case "point":
+        probe = toModel(entity.p);
+        entityType = "vertex";
+        break;
+      case "line":
+        probe = toModel([(entity.p0[0] + entity.p1[0]) / 2, (entity.p0[1] + entity.p1[1]) / 2]);
+        entityType = "edge";
+        wantType = "line";
+        break;
+      case "circle":
+        probe = toModel(entity.center);
+        entityType = "edge";
+        wantType = "circle";
+        break;
+      case "arc": {
+        // Arc midpoint: rotate p0 about the centre by half the sweep.
+        const [cx, cy] = entity.center;
+        const a0 = Math.atan2(entity.p0[1] - cy, entity.p0[0] - cx);
+        let a1 = Math.atan2(entity.p1[1] - cy, entity.p1[0] - cx);
+        if (entity.ccw && a1 <= a0) a1 += 2 * Math.PI;
+        if (!entity.ccw && a1 >= a0) a1 -= 2 * Math.PI;
+        const r = Math.hypot(entity.p0[0] - cx, entity.p0[1] - cy);
+        const am = (a0 + a1) / 2;
+        probe = toModel([cx + r * Math.cos(am), cy + r * Math.sin(am)]);
+        entityType = "edge";
+        wantType = "circle";
+        break;
+      }
+      default:
+        throw new ExecutionError(opId, `sketch entity type "${entity.type}" cannot be selected yet`);
+    }
+    if (expectEntity && expectEntity !== entityType) throw new ExecutionError(opId, `expected a ${expectEntity}, sketch entity "${entityId}" is a ${entityType}`);
+
+    const candidates = (await this.query(onshapeSketch, entityType)).filter((c) => !wantType || c.type === wantType);
+    const tol = (this.resolverOptions.tol ?? 1e-6) * 10;
+    const scored = candidates
+      .map((c) => {
+        const p = entityType === "vertex" ? c.point : wantType === "circle" ? c.center : c.midpoint;
+        return { candidate: c, d: p ? dist(p, probe) : Infinity };
+      })
+      .sort((a, b) => a.d - b.d);
+    const best = scored[0];
+    if (!best || best.d > tol) throw new ExecutionError(opId, `no ${entityType} of sketch ${irSketch.id} matches entity "${entityId}" (${candidates.length} candidates, nearest ${best ? best.d.toExponential(2) : "none"} m away)`);
+    const second = scored[1];
+    if (second && second.d <= tol) {
+      throw new AmbiguousSelectionError(opId, sel, scored.filter((s) => s.d <= tol).map((s) => ({ candidate: s.candidate, score: 1 / (1 + (s.d / tol) ** 2), resolver: "probe" as const })));
+    }
+    return {
+      query: idQuery([best.candidate.id]),
+      record: { opId, parameterId, selection: sel, deterministicIds: [best.candidate.id], resolver: "probe" as const, confidence: 1 / (1 + (best.d / tol) ** 2), candidates: candidates.length },
+      candidate: best.candidate,
+    };
   }
 
   private async resolveIrRef(opId: string, parameterId: string, sel: Selection, ref: Ref, expectEntity?: EntityType) {
@@ -422,7 +521,7 @@ export class Executor implements StepContext {
     return lists.flat();
   }
 
-  private irRefAt(opId: string, irFeatureId: string, path: string): Ref {
+  private irRefAt(opId: string, irFeatureId: string, path: string): Ref | SketchEntityRef {
     const f = this.irById.get(irFeatureId);
     if (!f) throw new ExecutionError(opId, `unknown IR feature "${irFeatureId}"`);
     let node: unknown = f;
@@ -431,7 +530,7 @@ export class Executor implements StepContext {
       node = (node as Record<string, unknown>)[part];
     }
     if (!node || typeof node !== "object" || !("kind" in node)) throw new ExecutionError(opId, `"${irFeatureId}.${path}" is not an IR Ref`);
-    return node as Ref;
+    return node as Ref | SketchEntityRef;
   }
 
   // --- datums and topology ---------------------------------------------------

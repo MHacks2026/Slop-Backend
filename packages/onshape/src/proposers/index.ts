@@ -3,6 +3,18 @@ import { angleExpression, lengthExpression } from "../expression.ts";
 import { applyDir, dot } from "../geometry.ts";
 import type { StepContext } from "../plan/executor.ts";
 import type { CreateFeatureOp, CreateSketchOp, Op, ParameterValue, Selection } from "../plan/types.ts";
+import { ProposalError } from "./errors.ts";
+import {
+  proposeChamfer,
+  proposeCircularPattern,
+  proposeHole,
+  proposeLinearPattern,
+  proposeMirror,
+  proposePlane,
+  proposeRevolve,
+  proposeShell,
+  selectionFor,
+} from "./features.ts";
 
 /**
  * Direct-mapping proposers (architecture doc §6, "Mapping rules as data").
@@ -13,12 +25,7 @@ import type { CreateFeatureOp, CreateSketchOp, Op, ParameterValue, Selection } f
  * returns plan ops with op ids equal to the IR feature id, so later refs
  * (`sketchRegion`, `createdBy`) line up with IR ids.
  */
-export class ProposalError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "ProposalError";
-  }
-}
+export { ProposalError };
 
 type Proposer<F extends Feature = Feature> = (f: F, ctx: StepContext, parameters: ReadonlyMap<string, import("@slop/ir").Parameter>) => Op[];
 
@@ -26,6 +33,14 @@ const PROPOSERS: { [K in FeatureOp]?: Proposer<Extract<Feature, { op: K }>> } = 
   sketch: proposeSketch,
   extrude: proposeExtrude,
   fillet: proposeFillet,
+  revolve: proposeRevolve,
+  chamfer: proposeChamfer,
+  shell: proposeShell,
+  plane: proposePlane,
+  mirror: proposeMirror,
+  linearPattern: proposeLinearPattern,
+  circularPattern: proposeCircularPattern,
+  hole: proposeHole,
 };
 
 export const proposableOps = (): FeatureOp[] => Object.keys(PROPOSERS) as FeatureOp[];
@@ -36,16 +51,7 @@ export function proposeDirect(f: Feature, ctx: StepContext, parameters: Readonly
   return p(f, ctx, parameters);
 }
 
-// --- helpers -----------------------------------------------------------------
-
-function selectionFor(irFeature: string, path: string, ref: Ref): Selection {
-  if (ref.kind === "datum") {
-    if (ref.name === "ORIGIN") return { kind: "origin" };
-    return { kind: "datum", name: ref.name };
-  }
-  if (ref.kind === "feature-output" && ref.role === "region") return { kind: "sketchRegion", sketch: ref.feature };
-  return { kind: "irRef", irFeature, path };
-}
+// --- sketch, extrude, fillet (verified live on the plate) --------------------
 
 function proposeSketch(f: SketchFeature): Op[] {
   // Args that are IR Refs (locating dimensions to model edges, on-edge relations) are

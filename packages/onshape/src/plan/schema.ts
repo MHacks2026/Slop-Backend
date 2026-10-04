@@ -35,6 +35,8 @@ const selection = {
         },
       },
     },
+    { type: "object", required: ["kind", "sketch", "entity"], additionalProperties: false, properties: { kind: { const: "sketchEntity" }, sketch: { type: "string" }, entity: { type: "string" } } },
+    { type: "object", required: ["kind", "features"], additionalProperties: false, properties: { kind: { const: "features" }, features: { type: "array", minItems: 1, items: { type: "string" } } } },
   ],
 };
 
@@ -73,6 +75,7 @@ const op = {
         name: { type: "string" },
         plane: ref("Selection"),
         irSketch: { type: "string" },
+        transform: { type: "array", items: { type: "number" }, minItems: 16, maxItems: 16 },
         entities: { type: "array", items: ref("SketchEntity") },
         constraints: { type: "array", items: ref("Constraint") },
         dimensions: { type: "array", items: ref("Dimension") },
