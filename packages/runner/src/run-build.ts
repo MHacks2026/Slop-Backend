@@ -5,7 +5,7 @@
  * fake Onshape.
  */
 import { hashDocument, validateDocument, type Document } from "@slop/ir";
-import { buildDocument, RulePlanner, type BuildEvent, type BuildReport, type OnshapeApi, type Planner } from "@slop/onshape";
+import { buildDocument, RulePlanner, type AttemptOutcome, type BuildEvent, type BuildReport, type DocumentRef, type OnshapeApi, type Planner } from "@slop/onshape";
 
 export type PlannerName = "rules" | "claude";
 
@@ -20,6 +20,8 @@ export interface BuildInput {
 export type RunEvent =
   | { kind: "log"; payload: { line: string } }
   | { kind: "document"; payload: { did: string; wid: string; eid: string; url: string } }
+  | { kind: "featureStart"; payload: { index: number; total: number; irId: string; name: string; op: string } }
+  | { kind: "attempt"; payload: { index: number; total: number; irId: string; n: number; outcome: AttemptOutcome } & Record<string, unknown> }
   | { kind: "feature"; payload: { index: number; total: number } & Record<string, unknown> }
   | { kind: "behavior"; payload: { index: number; total: number } & Record<string, unknown> }
   | { kind: "finished"; payload: { status: "succeeded" | "failed"; error?: string; summary?: unknown } };
@@ -39,6 +41,10 @@ export interface RunDeps {
   emit: (event: RunEvent) => Promise<void> | void;
   /** Behaviour tests on by default; tests and dry runs may switch them off. */
   behavior?: boolean;
+  /** Build into this Part Studio instead of creating a document. */
+  target?: DocumentRef;
+  /** Base of the document link in `document` events. Default https://cad.onshape.com. */
+  baseUrl?: string;
 }
 
 export async function runBuild(build: BuildInput, deps: RunDeps): Promise<RunOutcome> {
@@ -76,11 +82,16 @@ export async function runBuild(build: BuildInput, deps: RunDeps): Promise<RunOut
       planner,
       name: build.name,
       ...(deps.behavior === false ? { behavior: false } : {}),
+      ...(deps.target ? { target: deps.target } : {}),
       log: (line) => void emit({ kind: "log", payload: { line } }),
       onEvent: (e: BuildEvent) => {
         if (e.type === "document") {
           document = e.document;
-          void emit({ kind: "document", payload: { ...e.document, url: documentUrl(e.document) } });
+          void emit({ kind: "document", payload: { ...e.document, url: documentUrl(e.document, deps.baseUrl) } });
+        } else if (e.type === "featureStart") {
+          void emit({ kind: "featureStart", payload: { index: e.index, total: e.total, irId: e.irId, name: e.name, op: e.op } });
+        } else if (e.type === "attempt") {
+          void emit({ kind: "attempt", payload: { index: e.index, total: e.total, irId: e.irId, outcome: e.outcome, ...attemptSummary(e.attempt) } });
         } else if (e.type === "feature") {
           void emit({ kind: "feature", payload: { index: e.index, total: e.total, ...featureSummary(e.record) } });
         } else {
@@ -96,7 +107,8 @@ export async function runBuild(build: BuildInput, deps: RunDeps): Promise<RunOut
   }
 }
 
-export const documentUrl = (d: { did: string; wid: string; eid: string }): string => `https://cad.onshape.com/documents/${d.did}/w/${d.wid}/e/${d.eid}`;
+export const documentUrl = (d: { did: string; wid: string; eid: string }, baseUrl = "https://cad.onshape.com"): string =>
+  `${baseUrl.replace(/\/+$/, "")}/documents/${d.did}/w/${d.wid}/e/${d.eid}`;
 
 /** The per-feature record without the attempt log's bulk; enough for a progress row. */
 function featureSummary(r: BuildReport["features"][number]): Record<string, unknown> {
@@ -110,10 +122,29 @@ function featureSummary(r: BuildReport["features"][number]): Record<string, unkn
     onshapeFeatureId: r.onshapeFeatureId,
     checksPassed: r.checks.filter((c) => c.pass).length,
     checksTotal: r.checks.length,
-    refs: r.refs.map((x) => ({ parameterId: x.parameterId, ids: x.deterministicIds, resolver: x.resolver })),
+    checks: r.checks.map(checkSummary),
+    deviation: r.deviation,
+    refs: r.refs.map((x) => ({ parameterId: x.parameterId, ids: x.deterministicIds, resolver: x.resolver, confidence: x.confidence })),
     notes: r.notes,
     reasoning: r.reasoning,
     error: r.error,
+  };
+}
+
+/** A Level 1 comparison, for a UI table: SolidWorks value, Onshape value, verdict. */
+function checkSummary(c: BuildReport["features"][number]["checks"][number]): Record<string, unknown> {
+  return { name: c.name, expected: c.expected, actual: c.actual, pass: c.pass, ...(c.advisory ? { advisory: true } : {}), ...(c.error !== undefined ? { error: c.error } : {}) };
+}
+
+/** One propose/execute/measure cycle: what the planner tried and what came back. */
+function attemptSummary(a: BuildReport["features"][number]["attemptLog"][number]): { n: number } & Record<string, unknown> {
+  return {
+    n: a.n,
+    summary: a.summary,
+    reasoning: a.reasoning,
+    errors: a.errors.slice(0, 10),
+    checksPassed: a.checks.filter((c) => c.pass || c.advisory).length,
+    checksTotal: a.checks.length,
   };
 }
 

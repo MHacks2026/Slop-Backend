@@ -1,0 +1,27 @@
+{
+  "name": "@slop/server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Studio server: the web app's backend. Reads parts from SolidWorks, rebuilds them in the user's Onshape document with the keys they enter, and streams progress and live meshes.",
+  "type": "module",
+  "exports": {
+    ".": "./src/app.ts"
+  },
+  "scripts": {
+    "start": "node --import tsx src/main.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test \"test/**/*.test.ts\""
+  },
+  "dependencies": {
+    "@slop/ir": "*",
+    "@slop/onshape": "*",
+    "@slop/runner": "*",
+    "@supabase/supabase-js": "^2.117.2",
+    "jose": "^6.2.12"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "tsx": "^4.19.4",
+    "typescript": "^7.0.2"
+  }
+}

@@ -4,10 +4,14 @@
  * keys it holds, writes progress to build_events as it goes (the web app
  * subscribes through Realtime), and stores the report and accepted plan.
  *
- *   npm start -w packages/runner -- [--once] [--poll-ms 2000] [--worker-id name] [--no-behavior]
+ *   npm start -w packages/runner -- [--once] [--poll-ms 2000] [--worker-id name] [--no-behavior] [--env-keys]
  *
  * Env: SUPABASE_URL + SUPABASE_SECRET_KEY (environment or the repo's
- * .dev.vars); Onshape and Anthropic keys from packages/onshape/.env.
+ * .dev.vars); the Anthropic key from packages/onshape/.env. Each build runs
+ * with the Onshape keys of the user who requested it (onshape_credentials,
+ * read through build_onshape_credentials). --env-keys falls back to the keys
+ * in packages/onshape/.env when the requester has none: local development
+ * only, since those builds then land in that Onshape account.
  */
 import { readFileSync } from "node:fs";
 import { hostname } from "node:os";
@@ -15,7 +19,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { ClaudePlanner, loadClaudeConfig, loadConfig, OnshapeClient } from "@slop/onshape";
+import { ClaudePlanner, configForKeys, loadClaudeConfig, loadConfig, OnshapeClient, type OnshapeApi } from "@slop/onshape";
 import { defaultPlanner, runBuild, type BuildInput, type RunEvent } from "./run-build.ts";
 
 const { values: args } = parseArgs({
@@ -24,6 +28,7 @@ const { values: args } = parseArgs({
     "poll-ms": { type: "string", default: "2000" },
     "worker-id": { type: "string", default: `runner@${hostname()}` },
     "no-behavior": { type: "boolean", default: false },
+    "env-keys": { type: "boolean", default: false },
   },
 });
 const pollMs = Math.max(250, Number(args["poll-ms"]) || 2000);
@@ -61,8 +66,8 @@ if (!supabaseUrl || !supabaseKey) {
   process.exit(1);
 }
 
-// Fail at startup, not on the first build, if Onshape credentials are missing.
-const onshape = new OnshapeClient(loadConfig());
+// With --env-keys, fail at startup, not on the first build, if the fallback keys are missing.
+const envOnshape = args["env-keys"] ? new OnshapeClient(loadConfig()) : undefined;
 const planner = defaultPlanner(loadClaudeConfig, ClaudePlanner);
 const supabase = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false, autoRefreshToken: false } });
 
@@ -78,6 +83,19 @@ async function claim(): Promise<BuildRow | null> {
   if (error) throw new Error(`claim_build: ${error.message}`);
   const rows = (data ?? []) as BuildRow[];
   return rows[0] ?? null;
+}
+
+/** An Onshape client with the keys of the user who requested the build. */
+async function onshapeFor(build: BuildRow): Promise<OnshapeApi> {
+  const { data, error } = await supabase.rpc("build_onshape_credentials", { p_build_id: build.id });
+  if (error) throw new Error(`build_onshape_credentials: ${error.message}`);
+  const keys = ((data ?? []) as Array<{ access_key: string; secret_key: string }>)[0];
+  if (keys) return new OnshapeClient(configForKeys(keys.access_key, keys.secret_key));
+  if (envOnshape) {
+    console.log("  no Onshape keys stored for the requester; using packages/onshape/.env (--env-keys)");
+    return envOnshape;
+  }
+  throw new Error("No Onshape API keys stored for the user who requested this build. Add them with PUT /api/me/onshape.");
 }
 
 async function process1(sb: SupabaseClient, build: BuildRow): Promise<void> {
@@ -99,7 +117,18 @@ async function process1(sb: SupabaseClient, build: BuildRow): Promise<void> {
     if (e.kind === "behavior") console.log(`  behaviour ${e.payload.target} -> ${e.payload.expression}: ${e.payload.status}`);
   };
 
-  const out = await runBuild(build, { api: onshape, planner, emit, ...(args["no-behavior"] ? { behavior: false } : {}) });
+  let api: OnshapeApi;
+  try {
+    api = await onshapeFor(build);
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    await emit({ kind: "finished", payload: { status: "failed", error: message } });
+    await sb.from("builds").update({ status: "failed", error: message, finished_at: new Date().toISOString() }).eq("id", build.id);
+    console.log(`  ✗ failed: ${message}`);
+    return;
+  }
+
+  const out = await runBuild(build, { api, planner, emit, ...(args["no-behavior"] ? { behavior: false } : {}) });
 
   const { error } = await sb
     .from("builds")

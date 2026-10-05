@@ -15,7 +15,7 @@ function sink() {
 const kinds = (events: RunEvent[]) => events.filter((e) => e.kind !== "log").map((e) => e.kind);
 const rules = () => new RulePlanner();
 
-test("a valid IR builds, streams document / feature / behaviour / finished events in order, and succeeds", async () => {
+test("a valid IR builds, streams document / featureStart / attempt / feature / behaviour / finished events in order, and succeeds", async () => {
   const { events, emit } = sink();
   const api = new FakeOnshape(plateWorld(plate));
   const out = await runBuild({ id: "b1", name: "plate", planner: "rules", ir: plate }, { api, planner: rules, emit });
@@ -26,7 +26,12 @@ test("a valid IR builds, streams document / feature / behaviour / finished event
   assert.equal(out.irIntentHash?.length, 64);
   assert.equal(out.report?.summary.built, 5);
 
-  assert.deepEqual(kinds(events), ["document", "feature", "feature", "feature", "feature", "feature", "behavior", "behavior", "behavior", "behavior", "behavior", "finished"]);
+  const perFeature = ["featureStart", "attempt", "feature"];
+  assert.deepEqual(kinds(events), ["document", ...perFeature, ...perFeature, ...perFeature, ...perFeature, ...perFeature, "behavior", "behavior", "behavior", "behavior", "behavior", "finished"]);
+  const attempts = events.filter((e) => e.kind === "attempt").map((e) => e.payload as Record<string, unknown>);
+  assert.deepEqual(attempts.map((a) => [a.irId, a.n, a.outcome]), [["f1", 1, "accepted"], ["f2", 1, "accepted"], ["f3", 1, "accepted"], ["f4", 1, "accepted"], ["f5", 1, "accepted"]]);
+  const starts = events.filter((e) => e.kind === "featureStart").map((e) => e.payload as Record<string, unknown>);
+  assert.deepEqual(starts.map((s) => [s.index, s.irId, s.op]), [[0, "f1", "sketch"], [1, "f2", "extrude"], [2, "f3", "sketch"], [3, "f4", "extrude"], [4, "f5", "fillet"]]);
   const doc = events.find((e) => e.kind === "document")!;
   assert.equal((doc.payload as { url: string }).url, "https://cad.onshape.com/documents/D1/w/W1/e/E1");
   const features = events.filter((e) => e.kind === "feature").map((e) => e.payload as Record<string, unknown>);

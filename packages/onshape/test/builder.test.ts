@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { assertValidDocument, hashDocument, type Document } from "@slop/ir";
-import { buildDocument } from "../src/builder.ts";
+import { buildDocument, type BuildEvent } from "../src/builder.ts";
 import type { BTMFeature, BTMSketch, BTParameterBoolean, BTParameterQueryList, BTIndividualQuery } from "../src/client/types.ts";
 import type { CreateFeatureOp } from "../src/plan/types.ts";
 import { ReplayPlanner } from "../src/planner/replay.ts";
@@ -109,12 +109,17 @@ test("a feature the direct proposers refuse is recorded as dropped and later fea
   ir.partStudio.features[5] = { ...ir.partStudio.features[5]!, edges: [{ kind: "topo", entity: "edge", createdBy: "f4b" }] } as typeof ir.partStudio.features[5];
   assertValidDocument(ir);
 
-  const report = await buildDocument(ir, new FakeOnshape(plateWorld(plate)));
+  const events: BuildEvent[] = [];
+  const report = await buildDocument(ir, new FakeOnshape(plateWorld(plate)), { onEvent: (e) => events.push(e) });
   const pattern = report.features.find((f) => f.irId === "f4b")!;
   assert.equal(pattern.status, "failed");
   assert.equal(pattern.rung, "dropped");
   assert.match(pattern.error!, /skipped instances has no direct proposer/);
   assert.equal(report.features.find((f) => f.irId === "f5"), undefined);
+  // A UI following the events learns about the refusal, not just the report.
+  const last = events.at(-1)!;
+  assert.equal(last.type, "feature");
+  assert.deepEqual(last.type === "feature" ? [last.record.irId, last.record.status] : [], ["f4b", "failed"]);
 });
 
 test("what the extractor could not carry is shown in the report as a source note", async () => {
@@ -158,7 +163,10 @@ test("an accepted plan replays without asking the planner again", async () => {
 
 test("a translator that picks the wrong edge is shown the failure and can correct itself", async () => {
   const planner = new WrongThenRightFillet();
-  const report = await buildDocument(plate, new FakeOnshape(plateWorld(plate)), { planner });
+  const events: BuildEvent[] = [];
+  const report = await buildDocument(plate, new FakeOnshape(plateWorld(plate)), { planner, onEvent: (e) => events.push(e) });
+  const attempts = events.flatMap((e) => (e.type === "attempt" && e.irId === "f5" ? [[e.attempt.n, e.outcome]] : []));
+  assert.deepEqual(attempts, [[1, "execFailed"], [2, "accepted"]]);
   const fillet = report.features.find((f) => f.irId === "f5")!;
   assert.equal(fillet.status, "built");
   assert.equal(fillet.attempts, 2);

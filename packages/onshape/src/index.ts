@@ -1,11 +1,11 @@
 export { buildDocument, DATUM_REMAP } from "./builder.ts";
-export type { AttemptRecord, BuildEvent, BuildOptions, BuildReport, FeatureRecord } from "./builder.ts";
+export type { AttemptOutcome, AttemptRecord, BuildEvent, BuildOptions, BuildReport, FeatureRecord } from "./builder.ts";
 export { OnshapeClient } from "./client/client.ts";
 export type { OnshapeApi } from "./client/api.ts";
 export { OnshapeHttp, OnshapeHttpError, OnshapeQuotaError } from "./client/http.ts";
 export { basicAuth, hmacAuth } from "./client/auth.ts";
 export type * from "./client/types.ts";
-export { loadConfig, loadClaudeConfig, loadEnvFiles } from "./env.ts";
+export { loadConfig, loadClaudeConfig, loadEnvFiles, configForKeys } from "./env.ts";
 export type { OnshapeConfig, ClaudeEnv } from "./env.ts";
 export { runBehaviorTests, locateDimension, normalizeExpression } from "./behavior.ts";
 export type { BehaviorCase, BehaviorResult, BehaviorStatus, BehaviorOptions } from "./behavior.ts";

@@ -10,10 +10,12 @@
     "deploy": "wrangler deploy --minify",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings",
     "mock-worker": "tsx scripts/mock-worker.ts",
+    "fake-agent": "tsx scripts/fake-agent.ts",
     "typecheck:scripts": "tsc -p scripts",
     "test:worker": "node --import tsx --test \"src/**/*.test.ts\"",
     "typecheck": "tsc --noEmit -p tsconfig.json && npm run typecheck --workspaces --if-present",
-    "runner": "npm start -w packages/runner --"
+    "runner": "npm start -w packages/runner --",
+    "studio": "npm start -w packages/server --"
   },
   "dependencies": {
     "hono": "^4.13.12",

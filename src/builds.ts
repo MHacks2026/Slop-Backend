@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { requireUser, type UserEnv } from "./auth";
 
 /**
  * Build routes: queue an IR document for migration into Onshape and read
@@ -60,22 +61,10 @@ export interface BuildDeps {
   db: BuildsDb;
 }
 
-type Env = { Variables: { uid: string } };
+export function buildRoutes(deps: BuildDeps): Hono<UserEnv> {
+  const app = new Hono<UserEnv>();
 
-export function buildRoutes(deps: BuildDeps): Hono<Env> {
-  const app = new Hono<Env>();
-
-  app.use("*", async (c, next) => {
-    const token = c.req.header("authorization")?.replace(/^Bearer\s+/i, "");
-    if (!token) return c.json({ error: "missing bearer token" }, 401);
-    try {
-      const { uid } = await deps.verifyToken(token);
-      c.set("uid", uid);
-    } catch {
-      return c.json({ error: "invalid token" }, 401);
-    }
-    await next();
-  });
+  app.use("*", requireUser(deps.verifyToken));
 
   // POST /api/projects/:projectId/builds  { ir, planner?, name? }
   app.post("/projects/:projectId/builds", async (c) => {
